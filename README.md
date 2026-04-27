@@ -46,44 +46,6 @@ bun run typecheck
 bun run test
 ```
 
-## CLI quickstart
-
-Start a session:
-
-```bash
-gittrix s start "add login flow" /absolute/path/to/your/repo main
-```
-
-List sessions:
-
-```bash
-gittrix s list
-```
-
-Inspect changes:
-
-```bash
-gittrix session diff <session-id>
-gittrix session log <session-id>
-```
-
-Promote all touched files:
-
-```bash
-gittrix p <session-id> -m "Add login flow"
-```
-
-Promote selected files only:
-
-```bash
-gittrix p <session-id> --files=src/auth.ts,src/session.ts -m "Promote auth/session"
-```
-
-JSON output mode:
-
-```bash
-gittrix s list --json
-```
 
 ## Mental model
 
