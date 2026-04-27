@@ -1,0 +1,20 @@
+{
+  "name": "gittrix",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Ephemeral storage router for AI coding agents",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "bun@1.2.15",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --cwd packages/core build && bun run --cwd packages/adapter-local build && bun run --cwd packages/cli build",
+    "typecheck": "bun run --cwd packages/core build && bun run --cwd packages/core typecheck && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-local typecheck && bun run --cwd packages/cli typecheck",
+    "test": "bun run --cwd packages/core test && bun run --cwd packages/adapter-local test && bun run --cwd packages/cli test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

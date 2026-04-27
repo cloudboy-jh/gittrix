@@ -1,0 +1,47 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "gittrix",
+      "devDependencies": {
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/adapter-local": {
+      "name": "@gittrix/adapter-local",
+      "version": "0.1.0",
+      "dependencies": {
+        "@gittrix/core": "workspace:*",
+      },
+    },
+    "packages/cli": {
+      "name": "gittrix",
+      "version": "0.1.0",
+      "bin": {
+        "gittrix": "dist/index.js",
+      },
+      "dependencies": {
+        "@gittrix/adapter-local": "workspace:*",
+        "@gittrix/core": "workspace:*",
+      },
+    },
+    "packages/core": {
+      "name": "@gittrix/core",
+      "version": "0.1.0",
+      "dependencies": {
+        "nanoid": "^5.1.6",
+      },
+    },
+  },
+  "packages": {
+    "@gittrix/adapter-local": ["@gittrix/adapter-local@workspace:packages/adapter-local"],
+
+    "@gittrix/core": ["@gittrix/core@workspace:packages/core"],
+
+    "gittrix": ["gittrix@workspace:packages/cli"],
+
+    "nanoid": ["nanoid@5.1.9", "", { "bin": { "nanoid": "bin/nanoid.js" } }, "sha512-ZUvP7KeBLe3OZ1ypw6dI/TzYJuvHP77IM4Ry73waSQTLn8/g8rpdjfyVAh7t1/+FjBtG4lCP42MEbDxOsRpBMw=="],
+
+    "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+  }
+}
