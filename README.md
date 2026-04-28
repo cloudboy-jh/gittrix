@@ -21,6 +21,7 @@ Gittrix gives you that gate.
 - Human-only `promote` operation
 - Baseline conflict detection before promote
 - Single synthetic commit on durable for clean history
+- Pluggable durable adapters — works with any git remote, GitHub, or self-hosted forge
 
 ## Current status
 

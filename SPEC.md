@@ -60,11 +60,13 @@ Sessions have stable IDs, persist across process restarts (metadata is on disk),
 A Ref points to a repo on a specific backend. Tagged union, discriminated by type:
 tstype Ref =
   | { type: 'local'; path: string; branch?: string }
+  | { type: 'git-remote'; url: string; branch?: string; auth?: AuthRef }
   | { type: 'github'; owner: string; repo: string; branch?: string }
   | { type: 'codestorage'; namespace: string; repo: string; branch?: string }
   | { type: 'cloudflare'; namespace: string; key: string }
   | { type: 'gitfork'; slug: string }
 Each variant serializes to a stable URI (github://owner/repo#branch, local:///abs/path#branch, etc.) for logging, metadata storage, and CLI display.
+`git-remote` serializes as `git-remote://<url-encoded-remote>#<branch>`.
 4.3 Adapters
 Adapters wrap a specific backend and implement the StorageAdapter interface. Adapters declare their capabilities; the router validates pairings at construction.
 tsinterface AdapterCapabilities {
@@ -72,11 +74,13 @@ tsinterface AdapterCapabilities {
   push: boolean             // can push to other adapters
   fetch: boolean            // can pull from other adapters
   history: boolean          // log() returns meaningful results
+  pr: boolean               // can create PR/MR via forge API
   ttl: boolean              // native TTL support
   maxBlobSize?: number
   latencyClass: 'local' | 'edge' | 'regional'
 }
 Durable adapters must have git: true. Ephemeral adapters can have any capabilities; gittrix wraps non-git ephemerals through a thinner interface.
+`git-remote` is a generic git transport adapter over HTTPS/SSH. It shells out to `git push`, `git fetch`, `git ls-remote`, and related commands against the configured remote. It does not implement forge-specific APIs or auth flows beyond standard git credential handling.
 4.4 Overlay reads, ephemeral writes
 When the agent reads a file, gittrix checks ephemeral first; if absent, falls through to durable at baseline. This means:
 
@@ -233,9 +237,45 @@ gittrix config list
 Session metadata lives in ~/.gittrix/ (or platform-equivalent XDG dir). Working directories for ephemeral sessions live under ~/.gittrix/sessions/<session-id>/.
 The CLI does not replace git. Inside a session's working directory, users run normal git commands. Gittrix only operates at session boundaries (start, diff, promote, evict).
 7. Adapters (v1)
-In priority order:
-AdapterRoleCapabilitiesNotes@gittrix/adapter-localDurable + Ephemeralgit, history, branchesShells out to local git. Required for MVP.@gittrix/adapter-githubDurablegit, push, fetch, prOctokit-based, fetch over HTTPS.@gittrix/adapter-cloudflareEphemeral(no git, blob-only)Wraps Cloudflare Artifacts. Requires isomorphic-git if git semantics needed.@gittrix/adapter-codestorageDurable + Ephemeralgit, ttlPierre's API. Native TTL on ephemeral.@gittrix/adapter-gitforkEphemeralgit, ttlURL-as-API, trivial integration.
-MVP slice (week 1): local + local-tmp. Then GitHub. Cloudflare and Code Storage as access lands.
+Two-tier model: git-first substrate, forge-optional layers.
+
+Core adapters (substrate-agnostic, ship in v0.1 and v0.2):
+
+| Adapter | Role | Notes |
+|---|---|---|
+| `@gittrix/adapter-local` | Durable + Ephemeral | Shells out to local git. v0.1 — done. |
+| `@gittrix/adapter-git-remote` | Durable + Ephemeral | Generic git remote adapter over HTTPS/SSH. Covers Forgejo, Gitea, Sourcehut, self-hosted GitLab, Codeberg, bare-repo-over-SSH, and anything that speaks git. v0.2 priority. |
+
+`@gittrix/adapter-git-remote` capabilities:
+
+```ts
+{
+  git: true,
+  push: true,
+  fetch: true,
+  history: true,
+  pr: false,
+  ttl: false,
+  latencyClass: 'regional'
+}
+```
+
+`git-remote` is the recommended durable adapter when forge-specific features (PR creation, issue linking, CI status) are not required.
+
+Forge-aware adapters (extend `git-remote` with API features, ship as access lands):
+
+| Adapter | Role | Capabilities beyond `git-remote` |
+|---|---|---|
+| `@gittrix/adapter-github` | Durable | `pr: true` via Octokit |
+| `@gittrix/adapter-codestorage` | Durable + Ephemeral | `ttl: true`, native session lifecycle |
+| `@gittrix/adapter-cloudflare` | Ephemeral | Cloudflare Artifacts wrapper |
+| `@gittrix/adapter-gitfork` | Ephemeral | URL-as-API |
+| `@gittrix/adapter-gitlab` | Durable | `pr: true` (MR creation) — when demand emerges |
+
+MVP slice:
+- v0.1 ships local only (current state).
+- v0.2 priority is `git-remote` (not GitHub).
+- v0.3 adds GitHub as a forge-aware layer on top of `git-remote` with PR creation (`pr: true`).
 8. Tooling and runtime
 
 Language: TypeScript, strict mode, ESM only
@@ -281,12 +321,13 @@ Replace git. Gittrix lives alongside git, not in place of it.
 11. Strategic positioning
 Gittrix is to git what gh is to GitHub or wrangler is to Cloudflare: a purpose-built CLI and library for a layer that doesn't have one yet. It does not replace existing tools. It adds the missing piece — agent-aware session lifecycle with explicit promotion gates — to a workflow that otherwise still uses normal git.
 The consumer-facing surface is built downstream. glib-code is the canonical consumer in v1: a desktop development tool that uses gittrix for storage routing and bento-diffs for diff review. Other tools can adopt gittrix as a library or invoke its CLI without taking a dependency on glib.
+The forge substrate is fragmenting fast. Positioning stays durable by being git-first and forge-optional: durable storage is a pluggable target across hosted and self-hosted forges, with GitHub as one option rather than the center of gravity.
 Strategic integrations:
 
 Cloudflare — ephemeral backend via Artifacts, demos their stack at the human-facing layer
 Pierre (Code Storage) — durable + ephemeral backend, demonstrates real product integration of their git infrastructure
 GitFork — ephemeral backend, complementary positioning (their CLI use case + gittrix's session model)
-GitHub — durable backend, no special relationship needed, just the most common case
+GitHub — durable backend option; forge-aware features (PR creation) live in a GitHub-specific layer
 
 12. Open questions
 Marked explicitly so they're not pretended to be resolved:
@@ -308,7 +349,7 @@ Implement CLI wrapping the library — 1 day
 Wire into glib-code's existing agent loop — half day
 End-to-end test with a real agent run — half day
 
-One week to a working v0.1 against local-only. GitHub adapter another 1-2 days. Cloudflare and Code Storage adapters slot in as access lands. Glib-code consumes @gittrix/core from day one, writes zero backend code that isn't gittrix calls.
+One week to a working v0.1 against local-only. `git-remote` adapter is the v0.2 priority after v0.1 fixes (dirty-tree detection on promote, atomic apply cleanup, read-only access for non-active sessions). GitHub and other forge-aware adapters layer on after that as access and demand land. Glib-code consumes @gittrix/core from day one, writes zero backend code that isn't gittrix calls.
 
 Spec lives. Decisions are reversible. Ship and learn.
 
