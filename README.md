@@ -33,23 +33,23 @@ Implemented now:
 - `@gittrix/adapter-local`
 - `gittrix` CLI
 
-## Storage adapter options (per spec)
+## Storage options
 
 ```mermaid
 flowchart TD
-  A["Gittrix Core"]
+  A["Gittrix"]
 
-  subgraph CoreAdapters[Core adapters]
-    L["@gittrix/adapter-local\nDurable + Ephemeral\nv0.1 done"]
-    R["@gittrix/adapter-git-remote\nDurable + Ephemeral\nHTTPS/SSH generic git transport\nv0.2 priority"]
+  subgraph CoreAdapters[Available now / next]
+    L["Local Git\nWorks on your machine\n(session + final repo)\n✅ Available now"]
+    R["Any Git Remote\nWorks with any HTTPS/SSH git host\n(session + final repo)\n🛠️ Next up"]
   end
 
-  subgraph ForgeAware[Forge-aware adapters]
-    GH["@gittrix/adapter-github\nDurable\npr: true via Octokit"]
-    CS["@gittrix/adapter-codestorage\nDurable + Ephemeral\nttl: true"]
-    CF["@gittrix/adapter-cloudflare\nEphemeral\nCloudflare Artifacts wrapper"]
-    GF["@gittrix/adapter-gitfork\nEphemeral\nURL-as-API"]
-    GL["@gittrix/adapter-gitlab\nDurable\npr: true (MR creation)"]
+  subgraph ForgeAware[Planned platform-specific options]
+    GH["GitHub\nFinal repo + PR creation"]
+    CS["Code Storage\nSession repo + final repo\nBuilt-in session expiry"]
+    CF["Cloudflare Artifacts\nSession repo"]
+    GF["GitFork\nSession repo"]
+    GL["GitLab\nFinal repo + MR creation"]
   end
 
   A --> L
@@ -59,19 +59,39 @@ flowchart TD
   R --> CF
   R --> GF
   R --> GL
+
+  classDef core fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:2px;
+  classDef available fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20,stroke-width:2px;
+  classDef next fill:#FFF8E1,stroke:#F9A825,color:#E65100,stroke-width:2px;
+  classDef planned fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px;
+
+  class A core;
+  class L available;
+  class R next;
+  class GH,CS,CF,GF,GL planned;
 ```
 
-## Git options (per spec)
+## How promotion works
 
 ```mermaid
 flowchart TD
-  P["gittrix promote <session-id>"]
-  P --> A["--strategy=auto"]
-  P --> C["--strategy=commit"]
-  P --> B["--strategy=branch"]
-  P --> PR["--strategy=pr\nrequires durable adapter pr: true"]
-  P --> PT["--strategy=patch"]
-  P --> BR["--branch=<name>\noptional with branch/pr"]
+  P["Promote session changes\ngittrix promote <session-id>"]
+  P --> A["Auto\nGittrix picks the best path"]
+  P --> C["Commit\nWrite one clean commit directly"]
+  P --> B["Branch\nSend changes to a branch"]
+  P --> PR["Pull Request\nOpen a PR (adapter must support PRs)"]
+  P --> PT["Patch\nExport as a patch file"]
+  P --> BR["Optional: --branch=<name>\nUse with Branch or Pull Request"]
+
+  classDef start fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:2px;
+  classDef direct fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20,stroke-width:2px;
+  classDef review fill:#FFF3E0,stroke:#FB8C00,color:#E65100,stroke-width:2px;
+  classDef export fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px;
+
+  class P start;
+  class A,C direct;
+  class B,PR,BR review;
+  class PT export;
 ```
 
 ## Install
