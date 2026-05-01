@@ -1,222 +1,175 @@
-import { mkdir, readdir, readFile, rm, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 
-import type {
-  AdapterCapabilities,
-  ApplyToDurableOpts,
-  ApplyToDurableResult,
-  CommitEntry,
-  ListEntry,
-  LocalSessionAdapter,
-  SessionInit,
-} from '@gittrix/core'
-import { AdapterUnavailableError } from '@gittrix/core'
+import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, ListEntry } from '@gittrix/core'
 
 import { runGit } from './run-git.js'
 
-export interface LocalAdapterOptions {
+export interface LocalDurableAdapterOptions {
+  path: string
+  branch?: string
+}
+
+export interface LocalEphemeralAdapterOptions {
   sessionsRootDir: string
 }
 
-interface SessionPaths {
-  durablePath: string
-  ephemeralPath: string
-  branch: string
-}
+export class LocalDurableAdapter implements DurableAdapter {
+  private readonly path: string
+  private readonly branch: string
 
-export class LocalFsAdapter implements LocalSessionAdapter {
-  private readonly sessionsRootDir: string
-  private readonly sessions = new Map<string, SessionPaths>()
-
-  public constructor(options: LocalAdapterOptions) {
-    this.sessionsRootDir = options.sessionsRootDir
+  public constructor(options: LocalDurableAdapterOptions) {
+    this.path = resolve(options.path)
+    this.branch = options.branch ?? 'main'
   }
 
   public capabilities(): AdapterCapabilities {
-    return {
-      git: true,
-      push: false,
-      fetch: false,
-      history: true,
-      ttl: false,
-      latencyClass: 'local',
-    }
+    return { git: true, push: false, fetch: false, history: true, ttl: false, latencyClass: 'local' }
   }
 
-  public async initFromDurable(opts: SessionInit): Promise<void> {
-    const branch = opts.durableBranch ?? 'main'
-    await mkdir(opts.ephemeralPath, { recursive: true })
-    await runGit(['clone', '--branch', branch, '--single-branch', opts.durablePath, opts.ephemeralPath], this.sessionsRootDir)
-
-    this.sessions.set(opts.sessionId, {
-      durablePath: resolve(opts.durablePath),
-      ephemeralPath: resolve(opts.ephemeralPath),
-      branch,
-    })
+  public async getHead(branch = this.branch): Promise<string> {
+    return (await runGit(['rev-parse', branch], this.path)).stdout.trim()
   }
 
-  public async restoreSession(opts: SessionInit): Promise<void> {
-    this.sessions.set(opts.sessionId, {
-      durablePath: resolve(opts.durablePath),
-      ephemeralPath: resolve(opts.ephemeralPath),
-      branch: opts.durableBranch ?? 'main',
-    })
-  }
-
-  public async getDurableHead(durablePath: string, branch = 'main'): Promise<string> {
-    const result = await runGit(['rev-parse', branch], durablePath)
-    return result.stdout.trim()
-  }
-
-  public async getEphemeralHead(sessionId: string): Promise<string> {
-    const session = this.mustGetSession(sessionId)
-    const result = await runGit(['rev-parse', 'HEAD'], session.ephemeralPath)
-    return result.stdout.trim()
-  }
-
-  public async readFromEphemeral(sessionId: string, path: string): Promise<Uint8Array> {
-    const session = this.mustGetSession(sessionId)
-    const filePath = join(session.ephemeralPath, path)
-    return new Uint8Array(await readFile(filePath))
-  }
-
-  public async readFromDurableAtSha(durablePath: string, sha: string, path: string): Promise<Uint8Array> {
-    const result = await runGit(['show', `${sha}:${normalizeGitPath(path)}`], durablePath)
+  public async readAtSha(sha: string, path: string): Promise<Uint8Array> {
+    const result = await runGit(['show', `${sha}:${normalizePath(path)}`], this.path)
     return new Uint8Array(result.stdoutBytes)
   }
 
-  public async writeToEphemeral(sessionId: string, path: string, bytes: Uint8Array): Promise<void> {
-    const session = this.mustGetSession(sessionId)
-    const filePath = join(session.ephemeralPath, path)
-    await mkdir(dirname(filePath), { recursive: true })
-    await writeFile(filePath, bytes)
+  public async listAtSha(sha: string, path = '.'): Promise<ListEntry[]> {
+    const pathArg = path === '.' ? '' : normalizePath(path)
+    const result = await runGit(['ls-tree', '-r', '--name-only', sha, '--', pathArg], this.path)
+    return result.stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((filePath) => ({ path: filePath, type: 'file' as const }))
   }
 
-  public async deleteFromEphemeral(sessionId: string, path: string): Promise<void> {
-    const session = this.mustGetSession(sessionId)
-    const filePath = join(session.ephemeralPath, path)
-    await rm(filePath, { force: true })
+  public async changedFilesBetween(fromSha: string, toSha: string): Promise<string[]> {
+    const result = await runGit(['diff', '--name-only', `${fromSha}...${toSha}`], this.path)
+    return result.stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
   }
 
-  public async pathExistsInEphemeral(sessionId: string, path: string): Promise<boolean> {
-    const session = this.mustGetSession(sessionId)
-    const filePath = join(session.ephemeralPath, path)
+  public async applyCommit(opts: {
+    files: Record<string, Uint8Array | null>
+    message: string
+    branch?: string
+  }): Promise<{ sha: string; branch: string }> {
+    const branch = opts.branch ?? this.branch
+    for (const [file, bytes] of Object.entries(opts.files)) {
+      const destination = join(this.path, file)
+      if (bytes === null) {
+        await rm(destination, { force: true })
+      } else {
+        await mkdir(dirname(destination), { recursive: true })
+        await writeFile(destination, bytes)
+      }
+    }
+
+    const fileList = Object.keys(opts.files)
+    await runGit(['add', '-A', '--', ...fileList], this.path)
+    const staged = await runGit(['diff', '--cached', '--name-only', '--', ...fileList], this.path)
+    if (!staged.stdout.trim()) {
+      throw new Error('No staged changes for selected files')
+    }
+    await runGit(['commit', '-m', opts.message], this.path)
+    const sha = (await runGit(['rev-parse', 'HEAD'], this.path)).stdout.trim()
+    return { sha, branch }
+  }
+}
+
+export class LocalEphemeralAdapter implements EphemeralAdapter {
+  private readonly sessionsRootDir: string
+
+  public constructor(options: LocalEphemeralAdapterOptions) {
+    this.sessionsRootDir = resolve(options.sessionsRootDir)
+  }
+
+  public capabilities(): AdapterCapabilities {
+    return { git: false, push: false, fetch: false, history: false, ttl: false, latencyClass: 'local' }
+  }
+
+  public async initWorkspace(sessionId: string): Promise<void> {
+    await mkdir(this.sessionPath(sessionId), { recursive: true })
+    await this.saveTouched(sessionId, [])
+  }
+
+  public async read(sessionId: string, path: string): Promise<Uint8Array> {
+    return new Uint8Array(await readFile(join(this.sessionPath(sessionId), path)))
+  }
+
+  public async write(sessionId: string, path: string, bytes: Uint8Array): Promise<void> {
+    const full = join(this.sessionPath(sessionId), path)
+    await mkdir(dirname(full), { recursive: true })
+    await writeFile(full, bytes)
+    await this.markTouched(sessionId, path)
+  }
+
+  public async delete(sessionId: string, path: string): Promise<void> {
+    await rm(join(this.sessionPath(sessionId), path), { force: true })
+    await this.markTouched(sessionId, path)
+  }
+
+  public async exists(sessionId: string, path: string): Promise<boolean> {
     try {
-      const file = await stat(filePath)
+      const file = await stat(join(this.sessionPath(sessionId), path))
       return file.isFile()
     } catch {
       return false
     }
   }
 
-  public async listEphemeral(sessionId: string, path = '.'): Promise<ListEntry[]> {
-    const session = this.mustGetSession(sessionId)
-    const full = join(session.ephemeralPath, path)
-    return listFilesRecursive(full, session.ephemeralPath)
+  public async list(sessionId: string, path = '.'): Promise<ListEntry[]> {
+    return listFilesRecursive(join(this.sessionPath(sessionId), path), this.sessionPath(sessionId))
   }
 
-  public async listDurableAtSha(durablePath: string, sha: string, path = '.'): Promise<ListEntry[]> {
-    const pathArg = path === '.' ? '' : normalizeGitPath(path)
-    const result = await runGit(['ls-tree', '-r', '--name-only', sha, '--', pathArg], durablePath)
-    const lines = result.stdout
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-    return lines.map((filePath) => ({ path: filePath, type: 'file' as const }))
-  }
-
-  public async commitEphemeral(sessionId: string, message: string): Promise<string> {
-    const session = this.mustGetSession(sessionId)
-    await runGit(['add', '-A'], session.ephemeralPath)
-    await runGit(['commit', '-m', message], session.ephemeralPath)
-    const head = await runGit(['rev-parse', 'HEAD'], session.ephemeralPath)
-    return head.stdout.trim()
-  }
-
-  public async diffEphemeral(sessionId: string, fromSha?: string): Promise<string> {
-    const session = this.mustGetSession(sessionId)
-    const args = fromSha ? ['diff', '--binary', `${fromSha}...HEAD`] : ['diff', '--binary']
-    const result = await runGit(args, session.ephemeralPath)
-    return result.stdout
-  }
-
-  public async logEphemeral(sessionId: string): Promise<CommitEntry[]> {
-    const session = this.mustGetSession(sessionId)
-    const format = '%H%x1f%an%x1f%ae%x1f%aI%x1f%s'
-    const result = await runGit(['log', `--pretty=format:${format}`], session.ephemeralPath)
-    const lines = result.stdout.split('\n').filter(Boolean)
-    return lines.map((line) => {
-      const [sha, authorName, authorEmail, timestamp, message] = line.split('\x1f')
-      return {
-        sha: sha ?? '',
-        authorName: authorName ?? '',
-        authorEmail: authorEmail ?? '',
-        timestamp: timestamp ?? '',
-        message: message ?? '',
-      }
-    })
-  }
-
-  public async changedFilesBetween(durablePath: string, fromSha: string, toSha: string): Promise<string[]> {
-    const result = await runGit(['diff', '--name-only', `${fromSha}...${toSha}`], durablePath)
-    return result.stdout
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-  }
-
-  public async applyToDurable(opts: ApplyToDurableOpts): Promise<ApplyToDurableResult> {
-    const session = this.mustGetSession(opts.sessionId)
-
-    for (const file of opts.files) {
-      const source = join(session.ephemeralPath, file)
-      const destination = join(session.durablePath, file)
-      const exists = await this.pathExistsInEphemeral(opts.sessionId, file)
-      if (exists) {
-        await mkdir(dirname(destination), { recursive: true })
-        const bytes = await readFile(source)
-        await writeFile(destination, new Uint8Array(bytes))
-      } else {
-        await rm(destination, { force: true })
-      }
-    }
-
-    await runGit(['add', '-A', '--', ...opts.files], session.durablePath)
-
-    const staged = await runGit(['diff', '--cached', '--name-only', '--', ...opts.files], session.durablePath)
-    if (staged.stdout.trim().length === 0) {
-      throw new Error('No staged changes for selected files')
-    }
-
-    await runGit(['commit', '-m', opts.message], session.durablePath)
-    const sha = (await runGit(['rev-parse', 'HEAD'], session.durablePath)).stdout.trim()
-    const branch = (await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], session.durablePath)).stdout.trim()
-
-    return {
-      sha,
-      branch,
-    }
+  public async touchedFiles(sessionId: string): Promise<string[]> {
+    return this.loadTouched(sessionId)
   }
 
   public async destroy(sessionId: string): Promise<void> {
-    const session = this.mustGetSession(sessionId)
-    await rm(session.ephemeralPath, { recursive: true, force: true })
-    this.sessions.delete(sessionId)
+    await rm(this.sessionPath(sessionId), { recursive: true, force: true })
   }
 
-  private mustGetSession(sessionId: string): SessionPaths {
-    const session = this.sessions.get(sessionId)
-    if (!session) {
-      const fallbackPath = resolve(this.sessionsRootDir, sessionId, 'workspace')
-      const inferred: SessionPaths = {
-        durablePath: '',
-        ephemeralPath: fallbackPath,
-        branch: 'main',
-      }
-      this.sessions.set(sessionId, inferred)
-      return inferred
+  private sessionPath(sessionId: string): string {
+    return resolve(this.sessionsRootDir, sessionId, 'workspace')
+  }
+
+  private touchedPath(sessionId: string): string {
+    return join(this.sessionPath(sessionId), '.gittrix-touched.json')
+  }
+
+  private async loadTouched(sessionId: string): Promise<string[]> {
+    try {
+      const raw = await readFile(this.touchedPath(sessionId), 'utf8')
+      const data = JSON.parse(raw) as { files?: unknown }
+      return Array.isArray(data.files) ? data.files.filter((v): v is string => typeof v === 'string') : []
+    } catch {
+      return []
     }
-    return session
+  }
+
+  private async saveTouched(sessionId: string, files: string[]): Promise<void> {
+    await writeFile(this.touchedPath(sessionId), JSON.stringify({ files }, null, 2), 'utf8')
+  }
+
+  private async markTouched(sessionId: string, path: string): Promise<void> {
+    const touched = await this.loadTouched(sessionId)
+    if (!touched.includes(path)) {
+      touched.push(path)
+      await this.saveTouched(sessionId, touched)
+    }
+  }
+}
+
+/** @deprecated Use LocalDurableAdapter + LocalEphemeralAdapter. */
+export class LocalFsAdapter {
+  public constructor(_: LocalEphemeralAdapterOptions) {
+    throw new Error('LocalFsAdapter is removed. Use LocalDurableAdapter + LocalEphemeralAdapter.')
   }
 }
 
@@ -228,30 +181,21 @@ async function listFilesRecursive(path: string, root: string): Promise<ListEntry
   } catch {
     return entries
   }
-
   for (const entry of dirEntries) {
-    if (entry.name === '.git') {
-      continue
-    }
+    if (entry.name === '.git' || entry.name === '.gittrix-touched.json') continue
     const fullPath = join(path, entry.name)
-    const relPath = normalizeRelativePath(relative(root, fullPath))
+    const relPath = normalizePath(relative(root, fullPath))
     if (entry.isDirectory()) {
       entries.push({ path: relPath, type: 'dir' })
-      const nested = await listFilesRecursive(fullPath, root)
-      entries.push(...nested)
+      entries.push(...(await listFilesRecursive(fullPath, root)))
     } else {
       entries.push({ path: relPath, type: 'file' })
     }
   }
-
   return entries
 }
 
-function normalizeRelativePath(path: string): string {
-  return path.replace(/\\/g, '/')
-}
-
-function normalizeGitPath(path: string): string {
+function normalizePath(path: string): string {
   return path.replace(/\\/g, '/')
 }
 

@@ -2,7 +2,7 @@
 
 Ephemeral storage router for AI coding agents. Agents work in throwaway repos, humans promote accepted changes to durable storage, and your real history stays clean.
 
-- **Status:** v0.1 spec — pre-implementation
+- **Status:** v0.2 spec — interface-split adapter model
 - **License:** MIT
 - **Author:** Jack Horton (cloudboy-jh)
 
@@ -44,12 +44,17 @@ Three load-bearing claims follow:
 └──────┬──────────────────────────┬───────┘
        │                          │
        ▼                          ▼
-┌─────────────────┐        ┌─────────────────┐
-│  Ephemeral      │        │  Durable        │
-│  Adapter        │        │  Adapter        │
-│  (any byte      │        │  (must be       │
-│   store)        │        │   git-capable)  │
-└─────────────────┘        └─────────────────┘
+┌──────────────────────────┐  ┌──────────────────────────┐
+│  Ephemeral Adapter       │  │  Durable Adapter         │
+│  (git optional)          │  │  (git required)          │
+│  Options:                │  │  Options:                │
+│  - local                 │  │  - local                 │
+│  - cloudflare-artifacts  │  │  - cloudflare-artifacts  │
+│  - gitfork               │  │  - git-remote            │
+│  - codestorage           │  │  - github                │
+│                          │  │  - gitlab                │
+│                          │  │  - codestorage           │
+└──────────────────────────┘  └──────────────────────────┘
 ```
 
 Agent receives `AgentSession` (no promote method). User UI receives `UserSession` (full control).
@@ -92,7 +97,7 @@ Each variant serializes to a stable URI (`github://owner/repo#branch`, `local://
 
 ### 4.3 Adapters
 
-Adapters wrap a specific backend and implement the `StorageAdapter` interface. Adapters declare their capabilities; the router validates pairings at construction.
+Adapters wrap a specific backend and implement one or both interfaces: `DurableAdapter` and `EphemeralAdapter`. Adapters declare their capabilities; the router validates pairings at construction.
 
 ```ts
 interface AdapterCapabilities {
@@ -107,9 +112,14 @@ interface AdapterCapabilities {
 }
 ```
 
-Durable adapters must have `git: true`. Ephemeral adapters can have any capabilities; gittrix wraps non-git ephemerals through a thinner interface.
+Durable adapters must have `git: true`. Ephemeral adapters may be git or non-git.
 
-`git-remote` is a generic git transport adapter over HTTPS/SSH. It shells out to `git push`, `git fetch`, `git ls-remote`, and related commands against the configured remote. It does not implement forge-specific APIs or auth flows beyond standard git credential handling.
+Current target provider set:
+
+- Durable providers: local, git-remote, GitHub, GitLab, Code Storage, Cloudflare Artifacts
+- Ephemeral providers: local, Cloudflare Artifacts, GitFork, Code Storage
+
+`git-remote` remains the generic git transport over HTTPS/SSH (no forge API features).
 
 ### 4.4 Overlay reads, ephemeral writes
 
@@ -174,14 +184,15 @@ Adapters with native TTL (Code Storage, GitFork) handle eviction themselves. Ada
 
 ```ts
 import { GitTrix } from '@gittrix/core'
-import { LocalFsAdapter } from '@gittrix/adapter-local'
-import { CloudflareArtifactsAdapter } from '@gittrix/adapter-cloudflare'
+import { LocalDurableAdapter, LocalEphemeralAdapter } from '@gittrix/adapter-local'
+import { CloudflareArtifactsEphemeralAdapter } from '@gittrix/adapter-cloudflare-artifacts'
 
 const gittrix = new GitTrix({
-  durable: new LocalFsAdapter({ path: '/Users/jack/code/myproject' }),
-  ephemeral: new CloudflareArtifactsAdapter({
-    credentials: async () => ({ token: await getToken() }),
-    namespace: 'glib'
+  durable: new LocalDurableAdapter({ path: '/Users/jack/code/myproject' }),
+  ephemeral: new CloudflareArtifactsEphemeralAdapter({
+    accountId: '...',
+    apiToken: '...',
+    namespace: 'glib',
   }),
   defaultEviction: { ttlIdle: '4h', untilPromote: true }
 })
@@ -311,48 +322,41 @@ Session metadata lives in `~/.gittrix/` (or platform-equivalent XDG dir). Workin
 
 The CLI does not replace git. Inside a session's working directory, users run normal git commands. Gittrix only operates at session boundaries (start, diff, promote, evict).
 
-## 7. Adapters (v1)
+## 7. Adapters (provider matrix)
 
-Two-tier model: git-first substrate, forge-optional layers.
+One package can expose both adapter types. Provider selection is explicit: one durable + one ephemeral per session.
 
-Core adapters (substrate-agnostic, ship in v0.1 and v0.2):
+| Package | Durable | Ephemeral | Status |
+|---|---|---|---|
+| `@gittrix/adapter-local` | ✅ | ✅ | v0.1 shipped |
+| `@gittrix/adapter-cloudflare-artifacts` | ✅ | ✅ | v0.2 target |
+| `@gittrix/adapter-git-remote` | ✅ | ⚠️ optional | v0.3 target |
+| `@gittrix/adapter-github` | ✅ | ❌ | v0.3+ target |
+| `@gittrix/adapter-gitlab` | ✅ | ❌ | v0.3+ target |
+| `@gittrix/adapter-codestorage` | ✅ | ✅ | v0.3 target |
+| `@gittrix/adapter-gitfork` | ❌ | ✅ | v0.3 target |
 
-| Adapter | Role | Notes |
-|---|---|---|
-| `@gittrix/adapter-local` | Durable + Ephemeral | Shells out to local git. v0.1 — done. |
-| `@gittrix/adapter-git-remote` | Durable + Ephemeral | Generic git remote adapter over HTTPS/SSH. Covers Forgejo, Gitea, Sourcehut, self-hosted GitLab, Codeberg, bare-repo-over-SSH, and anything that speaks git. v0.2 priority. |
+Durable (git provider) options:
 
-`@gittrix/adapter-git-remote` capabilities:
+- local
+- cloudflare-artifacts
+- git-remote (generic HTTPS/SSH)
+- github
+- gitlab
+- codestorage
 
-```ts
-{
-  git: true,
-  push: true,
-  fetch: true,
-  history: true,
-  pr: false,
-  ttl: false,
-  latencyClass: 'regional'
-}
-```
+Ephemeral options:
 
-`git-remote` is the recommended durable adapter when forge-specific features (PR creation, issue linking, CI status) are not required.
+- local
+- cloudflare-artifacts
+- gitfork
+- codestorage
 
-Forge-aware adapters (extend `git-remote` with API features, ship as access lands):
+Notes:
 
-| Adapter | Role | Capabilities beyond `git-remote` |
-|---|---|---|
-| `@gittrix/adapter-github` | Durable | `pr: true` via Octokit |
-| `@gittrix/adapter-codestorage` | Durable + Ephemeral | `ttl: true`, native session lifecycle |
-| `@gittrix/adapter-cloudflare` | Ephemeral | Cloudflare Artifacts wrapper |
-| `@gittrix/adapter-gitfork` | Ephemeral | URL-as-API |
-| `@gittrix/adapter-gitlab` | Durable | `pr: true` (MR creation) — when demand emerges |
-
-MVP slice:
-
-- v0.1 ships local only (current state).
-- v0.2 priority is `git-remote` (not GitHub).
-- v0.3 adds GitHub as a forge-aware layer on top of `git-remote` with PR creation (`pr: true`).
+- Durable must always be git-capable.
+- Ephemeral does not have to be git-capable.
+- `git-remote` is the baseline provider for self-hosted and non-forge-specific git endpoints.
 
 ## 8. Tooling and runtime
 
@@ -379,8 +383,10 @@ gittrix/
 │   ├── core/                    # @gittrix/core
 │   ├── cli/                     # gittrix (unscoped)
 │   ├── adapter-local/           # @gittrix/adapter-local
+│   ├── adapter-cloudflare-artifacts/ # @gittrix/adapter-cloudflare-artifacts
+│   ├── adapter-git-remote/      # @gittrix/adapter-git-remote
 │   ├── adapter-github/          # @gittrix/adapter-github
-│   ├── adapter-cloudflare/      # @gittrix/adapter-cloudflare
+│   ├── adapter-gitlab/          # @gittrix/adapter-gitlab
 │   ├── adapter-codestorage/     # @gittrix/adapter-codestorage
 │   └── adapter-gitfork/         # @gittrix/adapter-gitfork
 └── examples/

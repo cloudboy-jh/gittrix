@@ -2,3 +2,5 @@ node_modules/
 packages/*/dist/
 .DS_Store
 .gittrix/
+.env
+.env.local

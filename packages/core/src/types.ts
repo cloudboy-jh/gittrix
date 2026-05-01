@@ -99,6 +99,7 @@ export interface SessionInit {
   ephemeralPath: string
 }
 
+/** @deprecated Use DurableAdapter + EphemeralAdapter instead. */
 export interface LocalSessionAdapter {
   capabilities(): AdapterCapabilities
   initFromDurable(opts: SessionInit): Promise<void>
@@ -117,6 +118,31 @@ export interface LocalSessionAdapter {
   logEphemeral(sessionId: string): Promise<CommitEntry[]>
   changedFilesBetween(durablePath: string, fromSha: string, toSha: string): Promise<string[]>
   applyToDurable(opts: ApplyToDurableOpts): Promise<ApplyToDurableResult>
+  destroy(sessionId: string): Promise<void>
+}
+
+export interface DurableAdapter {
+  capabilities(): AdapterCapabilities
+  getHead(branch: string): Promise<string>
+  readAtSha(sha: string, path: string): Promise<Uint8Array>
+  listAtSha(sha: string, path?: string): Promise<ListEntry[]>
+  changedFilesBetween(fromSha: string, toSha: string): Promise<string[]>
+  applyCommit(opts: {
+    files: Record<string, Uint8Array | null>
+    message: string
+    branch?: string
+  }): Promise<{ sha: string; branch: string }>
+}
+
+export interface EphemeralAdapter {
+  capabilities(): AdapterCapabilities
+  initWorkspace(sessionId: string, baseline: { durableRef: string; sha: string }): Promise<void>
+  read(sessionId: string, path: string): Promise<Uint8Array>
+  write(sessionId: string, path: string, bytes: Uint8Array): Promise<void>
+  delete(sessionId: string, path: string): Promise<void>
+  exists(sessionId: string, path: string): Promise<boolean>
+  list(sessionId: string, path?: string): Promise<ListEntry[]>
+  touchedFiles(sessionId: string): Promise<string[]>
   destroy(sessionId: string): Promise<void>
 }
 

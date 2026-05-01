@@ -1,6 +1,6 @@
 {
-  "name": "@gittrix/core",
-  "version": "0.1.0",
+  "name": "@gittrix/adapter-cloudflare-artifacts",
+  "version": "0.2.0-alpha.1",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,7 +16,6 @@
     "test": "bun test --pass-with-no-tests"
   },
   "dependencies": {
-    "diff": "^5.2.0",
-    "nanoid": "^5.1.6"
+    "@gittrix/core": "workspace:*"
   }
 }

@@ -39,36 +39,32 @@ Implemented now:
 flowchart TD
   A["Gittrix"]
 
-  subgraph CoreAdapters[Available now / next]
-    L["Local Git\nWorks on your machine\n(session + final repo)\n✅ Available now"]
-    R["Any Git Remote\nWorks with any HTTPS/SSH git host\n(session + final repo)\n🛠️ Next up"]
+  subgraph Durable[Durable providers]
+    DL["Local\n✅ Available"]
+    DCF["Cloudflare Artifacts\n🛠️ In progress"]
+    DR["Git Remote\n🛠️ Planned"]
+    DGH["GitHub\n🛠️ Planned"]
+    DGL["GitLab\n🛠️ Planned"]
+    DCS["Code Storage\n🛠️ Planned"]
   end
 
-  subgraph ForgeAware[Planned platform-specific options]
-    GH["GitHub\nFinal repo + PR creation"]
-    CS["Code Storage\nSession repo + final repo\nBuilt-in session expiry"]
-    CF["Cloudflare Artifacts\nSession repo"]
-    GF["GitFork\nSession repo"]
-    GL["GitLab\nFinal repo + MR creation"]
+  subgraph Ephemeral[Ephemeral providers]
+    EL["Local\n✅ Available"]
+    ECF["Cloudflare Artifacts\n✅ Available"]
+    EGF["GitFork\n🛠️ Planned"]
+    ECS["Code Storage\n🛠️ Planned"]
   end
 
-  A --> L
-  A --> R
-  R --> GH
-  R --> CS
-  R --> CF
-  R --> GF
-  R --> GL
+  A --> Durable
+  A --> Ephemeral
 
   classDef core fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:2px;
   classDef available fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20,stroke-width:2px;
-  classDef next fill:#FFF8E1,stroke:#F9A825,color:#E65100,stroke-width:2px;
   classDef planned fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px;
 
   class A core;
-  class L available;
-  class R next;
-  class GH,CS,CF,GF,GL planned;
+  class DL,EL,ECF available;
+  class DCF,DR,DGH,DGL,DCS,EGF,ECS planned;
 ```
 
 ## How promotion works

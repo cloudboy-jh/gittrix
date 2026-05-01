@@ -3,7 +3,7 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import { LocalFsAdapter } from '@gittrix/adapter-local'
+import { LocalDurableAdapter, LocalEphemeralAdapter } from '@gittrix/adapter-local'
 import { GittrixError, GitTrix } from '@gittrix/core'
 
 interface ParsedArgs {
@@ -15,8 +15,9 @@ const parsed = parseArgs(process.argv.slice(2))
 const jsonMode = parsed.flags.has('json')
 
 const sessionsRoot = join(homedir(), '.gittrix', 'sessions')
-const adapter = new LocalFsAdapter({ sessionsRootDir: sessionsRoot })
-const gittrix = new GitTrix({ adapter, storeDir: sessionsRoot })
+const durable = new LocalDurableAdapter({ path: process.cwd() })
+const ephemeral = new LocalEphemeralAdapter({ sessionsRootDir: sessionsRoot })
+const gittrix = new GitTrix({ durable, ephemeral, storeDir: sessionsRoot })
 
 try {
   await gittrix.init()
@@ -37,9 +38,7 @@ try {
       throw new Error('Missing durable path. Use: gittrix session start "<task>" <durable-path> [branch]')
     }
 
-    const session = await gittrix.startSession(
-      branch ? { task, durablePath, durableBranch: branch } : { task, durablePath },
-    )
+    const session = await gittrix.startSession(branch ? { task, durablePath, durableBranch: branch } : { task, durablePath })
     output({ sessionId: session.id }, jsonMode)
   } else if (command === 'session' && subcommand === 'list') {
     const status = value(parsed, 'status') ?? third
