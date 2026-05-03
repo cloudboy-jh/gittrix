@@ -1,19 +1,35 @@
 {
   "name": "gittrix",
-  "private": true,
+  "private": false,
   "version": "0.1.0",
   "description": "Ephemeral storage router for AI coding agents",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudboy-jh/gittrix.git"
+  },
+  "homepage": "https://github.com/cloudboy-jh/gittrix#readme",
+  "bugs": {
+    "url": "https://github.com/cloudboy-jh/gittrix/issues"
+  },
   "type": "module",
   "packageManager": "bun@1.2.15",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run --cwd packages/core build && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/cli build",
-    "typecheck": "bun run --cwd packages/core build && bun run --cwd packages/core typecheck && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-local typecheck && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-cloudflare-artifacts typecheck && bun run --cwd packages/cli typecheck",
-    "test": "bun run --cwd packages/core test && bun run --cwd packages/adapter-local test && bun run --cwd packages/adapter-cloudflare-artifacts test && bun run --cwd packages/cli test"
+    "build": "bun run --cwd packages/core build && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/cli build && bun run --cwd packages/harness build",
+    "typecheck": "bun run --cwd packages/core build && bun run --cwd packages/core typecheck && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-local typecheck && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-cloudflare-artifacts typecheck && bun run --cwd packages/cli typecheck && bun run --cwd packages/harness typecheck",
+    "test": "bun run --cwd packages/core test && bun run --cwd packages/adapter-local test && bun run --cwd packages/adapter-cloudflare-artifacts test && bun run --cwd packages/cli test",
+    "testharness": "bun run --cwd packages/harness run"
   },
+  "files": [
+    "README.md",
+    "docs/",
+    "packages/",
+    "gittrix.png",
+    "tsconfig.base.json"
+  ],
   "devDependencies": {
     "typescript": "^5.9.3"
   }

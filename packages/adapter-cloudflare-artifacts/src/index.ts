@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
 import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, ListEntry } from '@gittrix/core'
 
 import { ArtifactsClient } from './api.js'
+import { runGit } from './run-git.js'
 
 export interface CloudflareArtifactsDurableOptions {
   accountId: string
@@ -24,38 +25,154 @@ export interface CloudflareArtifactsEphemeralOptions {
 
 export class CloudflareArtifactsDurableAdapter implements DurableAdapter {
   private readonly branch: string
+  private readonly client: ArtifactsClient
+  private lastFetchAt = 0
+  private cachedToken: { token: string; expiresAt: number } | null = null
+
   public constructor(private readonly options: CloudflareArtifactsDurableOptions) {
     this.branch = options.branch ?? 'main'
+    this.client = new ArtifactsClient({
+      accountId: options.accountId,
+      apiToken: options.apiToken,
+      namespace: options.namespace ?? 'default',
+    })
   }
 
   public capabilities(): AdapterCapabilities {
     return { git: true, push: true, fetch: true, history: true, ttl: false, latencyClass: 'regional' }
   }
 
-  public async getHead(_branch: string): Promise<string> {
-    throw new Error('CloudflareArtifactsDurableAdapter not implemented yet')
+  public async getHead(branch = this.branch): Promise<string> {
+    const mirrorPath = await this.ensureMirror()
+    await this.ensureBranch(mirrorPath, branch)
+    return (await runGit(['rev-parse', branch], mirrorPath)).stdout.trim()
   }
-  public async readAtSha(_sha: string, _path: string): Promise<Uint8Array> {
-    throw new Error('CloudflareArtifactsDurableAdapter not implemented yet')
+  public async readAtSha(sha: string, path: string): Promise<Uint8Array> {
+    const mirrorPath = await this.ensureMirror()
+    const result = await runGit(['show', `${sha}:${normalizePath(path)}`], mirrorPath)
+    return result.stdoutBytes
   }
-  public async listAtSha(_sha: string, _path?: string): Promise<ListEntry[]> {
-    throw new Error('CloudflareArtifactsDurableAdapter not implemented yet')
+  public async listAtSha(sha: string, path = '.'): Promise<ListEntry[]> {
+    const mirrorPath = await this.ensureMirror()
+    const pathArg = path === '.' ? '' : normalizePath(path)
+    const result = await runGit(['ls-tree', '-r', '--name-only', sha, '--', pathArg], mirrorPath)
+    return result.stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((filePath) => ({ path: filePath, type: 'file' as const }))
   }
-  public async changedFilesBetween(_fromSha: string, _toSha: string): Promise<string[]> {
-    throw new Error('CloudflareArtifactsDurableAdapter not implemented yet')
+  public async changedFilesBetween(fromSha: string, toSha: string): Promise<string[]> {
+    const mirrorPath = await this.ensureMirror()
+    const result = await runGit(['diff', '--name-only', `${fromSha}...${toSha}`], mirrorPath)
+    return result.stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
   }
-  public async applyCommit(_opts: {
+  public async applyCommit(opts: {
     files: Record<string, Uint8Array | null>
     message: string
     branch?: string
   }): Promise<{ sha: string; branch: string }> {
-    throw new Error('CloudflareArtifactsDurableAdapter not implemented yet')
+    const branch = opts.branch ?? this.branch
+    const mirrorPath = await this.ensureMirror()
+    await this.ensureBranch(mirrorPath, branch)
+
+    await runGit(['checkout', branch], mirrorPath)
+    await runGit(['config', 'user.name', 'gittrix-bot'], mirrorPath)
+    await runGit(['config', 'user.email', 'gittrix-bot@users.noreply.local'], mirrorPath)
+
+    for (const [file, bytes] of Object.entries(opts.files)) {
+      const destination = join(mirrorPath, normalizePath(file))
+      if (bytes === null) {
+        await rm(destination, { force: true })
+      } else {
+        await mkdir(dirname(destination), { recursive: true })
+        await writeFile(destination, bytes)
+      }
+    }
+
+    const fileList = Object.keys(opts.files)
+    await runGit(['add', '-A', '--', ...fileList], mirrorPath)
+    const staged = await runGit(['diff', '--cached', '--name-only', '--', ...fileList], mirrorPath)
+    if (!staged.stdout.trim()) {
+      throw new Error('No staged changes for selected files')
+    }
+
+    await runGit(['commit', '-m', opts.message], mirrorPath)
+    await runGit(['push', 'origin', `HEAD:refs/heads/${branch}`], mirrorPath)
+    const sha = (await runGit(['rev-parse', 'HEAD'], mirrorPath)).stdout.trim()
+    return { sha, branch }
   }
 
   private mirrorPath(remoteUrl: string): string {
     const mirrorRoot = this.options.mirrorRoot ?? join(process.env.HOME ?? process.cwd(), '.gittrix', 'durable-mirrors')
     const key = createHash('sha256').update(remoteUrl).digest('hex').slice(0, 16)
     return resolve(mirrorRoot, key)
+  }
+
+  private async ensureMirror(): Promise<string> {
+    const repo = await this.getOrCreateRepo()
+    const token = await this.getRepoToken()
+    const authedRemote = withAuthToken(repo.remote, token)
+    const mirrorPath = this.mirrorPath(repo.remote)
+
+    await mkdir(dirname(mirrorPath), { recursive: true })
+    if (!(await isGitRepo(mirrorPath))) {
+      await rm(mirrorPath, { recursive: true, force: true })
+      await runGit(['clone', authedRemote, mirrorPath], process.cwd())
+      await writeFile(join(mirrorPath, '.gittrix-mirror'), 'gittrix mirror\n', 'utf8')
+      this.lastFetchAt = Date.now()
+    } else {
+      await runGit(['remote', 'set-url', 'origin', authedRemote], mirrorPath)
+      const now = Date.now()
+      if (now - this.lastFetchAt > 30_000) {
+        await runGit(['fetch', '--prune', 'origin'], mirrorPath)
+        this.lastFetchAt = now
+      }
+    }
+    return mirrorPath
+  }
+
+  private async getRepoToken(): Promise<string> {
+    const now = Date.now()
+    if (this.cachedToken && now < this.cachedToken.expiresAt - 5 * 60_000) {
+      return this.cachedToken.token
+    }
+    const minted = await this.client.mintToken(this.options.repoName)
+    const expiresAt = Date.parse(minted.expires_at)
+    this.cachedToken = {
+      token: minted.token,
+      expiresAt: Number.isFinite(expiresAt) ? expiresAt : now + 10 * 60_000,
+    }
+    return this.cachedToken.token
+  }
+
+  private async getOrCreateRepo(): Promise<{ remote: string }> {
+    try {
+      const created = await this.client.createRepo(this.options.repoName)
+      return { remote: created.remote }
+    } catch {
+      const existing = await this.client.getRepo(this.options.repoName)
+      return { remote: existing.remote }
+    }
+  }
+
+  private async ensureBranch(mirrorPath: string, branch: string): Promise<void> {
+    const existsOnRemote = await gitSucceeds(['show-ref', '--verify', '--quiet', `refs/remotes/origin/${branch}`], mirrorPath)
+    if (existsOnRemote) {
+      await runGit(['checkout', '-B', branch, `origin/${branch}`], mirrorPath)
+      return
+    }
+
+    const existsLocal = await gitSucceeds(['show-ref', '--verify', '--quiet', `refs/heads/${branch}`], mirrorPath)
+    if (existsLocal) {
+      await runGit(['checkout', branch], mirrorPath)
+      return
+    }
+
+    await runGit(['checkout', '--orphan', branch], mirrorPath)
   }
 }
 
@@ -77,8 +194,16 @@ export class CloudflareArtifactsEphemeralAdapter implements EphemeralAdapter {
   }
 
   public async initWorkspace(sessionId: string): Promise<void> {
-    await mkdir(this.sessionPath(sessionId), { recursive: true })
-    await this.client.createRepo(`gittrix-eph-${sessionId}`)
+    const repoName = `gittrix-eph-${sessionId}`
+    const repo = await this.client.createRepo(repoName)
+    const token = await this.client.mintToken(repoName)
+    const path = this.sessionPath(sessionId)
+    await rm(path, { recursive: true, force: true })
+    try {
+      await runGit(['clone', withAuthToken(repo.remote, token.token), path], process.cwd())
+    } catch {
+      await mkdir(path, { recursive: true })
+    }
     await this.writeTouched(sessionId, [])
   }
   public async read(sessionId: string, path: string): Promise<Uint8Array> {
@@ -101,9 +226,10 @@ export class CloudflareArtifactsEphemeralAdapter implements EphemeralAdapter {
       return false
     }
   }
-  public async list(sessionId: string): Promise<ListEntry[]> {
+  public async list(sessionId: string, path = '.'): Promise<ListEntry[]> {
     const out: ListEntry[] = []
-    await walk(this.sessionPath(sessionId), this.sessionPath(sessionId), out)
+    const root = this.sessionPath(sessionId)
+    await walk(root, join(root, normalizePath(path)), out)
     return out
   }
   public async touchedFiles(sessionId: string): Promise<string[]> {
@@ -144,7 +270,6 @@ export class CloudflareArtifactsEphemeralAdapter implements EphemeralAdapter {
 }
 
 async function walk(root: string, dir: string, out: ListEntry[]): Promise<void> {
-  const { readdir } = await import('node:fs/promises')
   let entries: Awaited<ReturnType<typeof readdir>>
   try {
     entries = await readdir(dir, { withFileTypes: true })
@@ -161,5 +286,33 @@ async function walk(root: string, dir: string, out: ListEntry[]): Promise<void> 
     } else {
       out.push({ path: rel, type: 'file' })
     }
+  }
+}
+
+async function isGitRepo(path: string): Promise<boolean> {
+  try {
+    return (await stat(join(path, '.git'))).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, '/')
+}
+
+function withAuthToken(remote: string, token: string): string {
+  const url = new URL(remote)
+  url.username = 'oauth2'
+  url.password = token
+  return url.toString()
+}
+
+async function gitSucceeds(args: string[], cwd: string): Promise<boolean> {
+  try {
+    await runGit(args, cwd)
+    return true
+  } catch {
+    return false
   }
 }

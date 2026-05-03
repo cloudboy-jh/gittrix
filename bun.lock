@@ -40,6 +40,15 @@
         "nanoid": "^5.1.6",
       },
     },
+    "packages/harness": {
+      "name": "@gittrix/harness",
+      "version": "0.1.0",
+      "dependencies": {
+        "@gittrix/adapter-cloudflare-artifacts": "workspace:*",
+        "@gittrix/adapter-local": "workspace:*",
+        "@gittrix/core": "workspace:*",
+      },
+    },
   },
   "packages": {
     "@gittrix/adapter-cloudflare-artifacts": ["@gittrix/adapter-cloudflare-artifacts@workspace:packages/adapter-cloudflare-artifacts"],
@@ -47,6 +56,8 @@
     "@gittrix/adapter-local": ["@gittrix/adapter-local@workspace:packages/adapter-local"],
 
     "@gittrix/core": ["@gittrix/core@workspace:packages/core"],
+
+    "@gittrix/harness": ["@gittrix/harness@workspace:packages/harness"],
 
     "diff": ["diff@5.2.2", "", {}, "sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A=="],
 

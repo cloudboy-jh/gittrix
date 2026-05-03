@@ -328,13 +328,13 @@ One package can expose both adapter types. Provider selection is explicit: one d
 
 | Package | Durable | Ephemeral | Status |
 |---|---|---|---|
-| `@gittrix/adapter-local` | ✅ | ✅ | v0.1 shipped |
-| `@gittrix/adapter-cloudflare-artifacts` | ✅ | ✅ | v0.2 target |
-| `@gittrix/adapter-git-remote` | ✅ | ⚠️ optional | v0.3 target |
-| `@gittrix/adapter-github` | ✅ | ❌ | v0.3+ target |
-| `@gittrix/adapter-gitlab` | ✅ | ❌ | v0.3+ target |
-| `@gittrix/adapter-codestorage` | ✅ | ✅ | v0.3 target |
-| `@gittrix/adapter-gitfork` | ❌ | ✅ | v0.3 target |
+| `@gittrix/adapter-local` | yes | yes | v0.1 shipped |
+| `@gittrix/adapter-cloudflare-artifacts` | yes | yes | v0.2 shipped |
+| `@gittrix/adapter-git-remote` | yes | optional | v0.3 target |
+| `@gittrix/adapter-github` | yes | no | v0.3+ target |
+| `@gittrix/adapter-gitlab` | yes | no | v0.3+ target |
+| `@gittrix/adapter-codestorage` | yes | yes | v0.3 target |
+| `@gittrix/adapter-gitfork` | no | yes | v0.3 target |
 
 Durable (git provider) options:
 

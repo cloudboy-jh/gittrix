@@ -1,4 +1,4 @@
-![Gittrix logo](./gittrix.png)
+![Gittrix logo](https://raw.githubusercontent.com/cloudboy-jh/gittrix/main/gittrix.png)
 
 # Gittrix
 
@@ -25,12 +25,13 @@ Gittrix gives you that gate.
 
 ## Current status
 
-v0.1 local MVP.
+v0.2 interface split + cloudflare-artifacts adapter.
 
 Implemented now:
 
 - `@gittrix/core`
 - `@gittrix/adapter-local`
+- `@gittrix/adapter-cloudflare-artifacts`
 - `gittrix` CLI
 
 ## Storage options
@@ -40,19 +41,19 @@ flowchart TD
   A["Gittrix"]
 
   subgraph Durable[Durable providers]
-    DL["Local\n✅ Available"]
-    DCF["Cloudflare Artifacts\n🛠️ In progress"]
-    DR["Git Remote\n🛠️ Planned"]
-    DGH["GitHub\n🛠️ Planned"]
-    DGL["GitLab\n🛠️ Planned"]
-    DCS["Code Storage\n🛠️ Planned"]
+    DL["Local\nAvailable"]
+    DCF["Cloudflare Artifacts\nAvailable"]
+    DR["Git Remote\nPlanned"]
+    DGH["GitHub\nPlanned"]
+    DGL["GitLab\nPlanned"]
+    DCS["Code Storage\nPlanned"]
   end
 
   subgraph Ephemeral[Ephemeral providers]
-    EL["Local\n✅ Available"]
-    ECF["Cloudflare Artifacts\n✅ Available"]
-    EGF["GitFork\n🛠️ Planned"]
-    ECS["Code Storage\n🛠️ Planned"]
+    EL["Local\nAvailable"]
+    ECF["Cloudflare Artifacts\nAvailable"]
+    EGF["GitFork\nPlanned"]
+    ECS["Code Storage\nPlanned"]
   end
 
   A --> Durable
@@ -63,8 +64,8 @@ flowchart TD
   classDef planned fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px;
 
   class A core;
-  class DL,EL,ECF available;
-  class DCF,DR,DGH,DGL,DCS,EGF,ECS planned;
+  class DL,DCF,EL,ECF available;
+  class DR,DGH,DGL,DCS,EGF,ECS planned;
 ```
 
 ## How promotion works
@@ -103,6 +104,21 @@ bun run build
 bun run typecheck
 bun run test
 ```
+
+## Test harness
+
+```bash
+bun run testharness --
+bun run testharness -- --integration
+bun run testharness -- --all
+bun run testharness -- --typecheck
+```
+
+## Docs
+
+- `docs/SPEC.md`
+- `docs/migration-v0.2.md`
+- `docs/test-scripts.md`
 
 
 ## Mental model
