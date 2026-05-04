@@ -333,7 +333,7 @@ One package can expose both adapter types. Provider selection is explicit: one d
 | `@gittrix/adapter-git-remote` | yes | optional | v0.3 target |
 | `@gittrix/adapter-github` | yes | no | v0.2 shipped |
 | `@gittrix/adapter-gitlab` | yes | no | v0.3+ target |
-| `@gittrix/adapter-codestorage` | yes | yes | v0.3 target |
+| `@gittrix/adapter-codestorage` | yes | yes | v0.3 target — adapter scaffolded, awaiting Code Storage early access |
 | `@gittrix/adapter-gitfork` | no | yes | v0.3 target |
 
 Durable (git provider) options:
@@ -419,7 +419,7 @@ The forge substrate is fragmenting fast. Positioning stays durable by being git-
 Strategic integrations:
 
 - Cloudflare — ephemeral backend via Artifacts, demos their stack at the human-facing layer
-- Pierre (Code Storage) — durable + ephemeral backend, demonstrates real product integration of their git infrastructure
+- Pierre (Code Storage) — durable + ephemeral backend; early access conversation is open, adapter scaffolded pending availability
 - GitFork — ephemeral backend, complementary positioning (their CLI use case + gittrix's session model)
 - GitHub — durable backend option; forge-aware features (PR creation) live in a GitHub-specific layer
 

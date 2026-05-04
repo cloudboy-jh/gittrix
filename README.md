@@ -6,6 +6,10 @@ Storage routing for AI coding agents.
 
 Gittrix gives every agent task an ephemeral workspace and keeps your durable repo clean until a human promotes the accepted changes.
 
+## Why
+
+Agents should write to throwaway storage by default, not directly into durable repo history. Gittrix makes that the normal path: agent work happens in ephemeral sessions, and only a human-facing `UserSession` can promote accepted changes. The agent gets an `AgentSession`, which has no `.promote()` method at all. Promotion is type-level enforced, not a convention or prompt instruction.
+
 ## Install
 
 Pick the durable adapter for the repo you want Gittrix to write to, plus an ephemeral adapter for agent workspaces.
@@ -35,6 +39,7 @@ bun add -g gittrix
 | `@gittrix/adapter-local` | yes | yes | available |
 | `@gittrix/adapter-github` | yes | no | available |
 | `@gittrix/adapter-cloudflare-artifacts` | yes | yes | available |
+| `@gittrix/adapter-codestorage` | yes | yes | planned, awaiting early access |
 
 ## Basic usage
 

@@ -18,9 +18,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run --cwd packages/core build && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-github build && bun run --cwd packages/cli build && bun run --cwd packages/harness build",
-    "typecheck": "bun run --cwd packages/core build && bun run --cwd packages/core typecheck && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-local typecheck && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-cloudflare-artifacts typecheck && bun run --cwd packages/adapter-github build && bun run --cwd packages/adapter-github typecheck && bun run --cwd packages/cli typecheck && bun run --cwd packages/harness typecheck",
-    "test": "bun run --cwd packages/core test && bun run --cwd packages/adapter-local test && bun run --cwd packages/adapter-cloudflare-artifacts test && bun run --cwd packages/adapter-github test && bun run --cwd packages/cli test",
+    "build": "bun run --cwd packages/core build && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-codestorage build && bun run --cwd packages/adapter-github build && bun run --cwd packages/cli build && bun run --cwd packages/harness build",
+    "typecheck": "bun run --cwd packages/core build && bun run --cwd packages/core typecheck && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-local typecheck && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-cloudflare-artifacts typecheck && bun run --cwd packages/adapter-codestorage build && bun run --cwd packages/adapter-codestorage typecheck && bun run --cwd packages/adapter-github build && bun run --cwd packages/adapter-github typecheck && bun run --cwd packages/cli typecheck && bun run --cwd packages/harness typecheck",
+    "test": "bun run --cwd packages/core test && bun run --cwd packages/adapter-local test && bun run --cwd packages/adapter-cloudflare-artifacts test && bun run --cwd packages/adapter-codestorage test && bun run --cwd packages/adapter-github test && bun run --cwd packages/cli test",
     "testharness": "bun run --cwd packages/harness run"
   },
   "files": [
