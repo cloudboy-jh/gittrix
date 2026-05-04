@@ -331,7 +331,7 @@ One package can expose both adapter types. Provider selection is explicit: one d
 | `@gittrix/adapter-local` | yes | yes | v0.1 shipped |
 | `@gittrix/adapter-cloudflare-artifacts` | yes | yes | v0.2 shipped |
 | `@gittrix/adapter-git-remote` | yes | optional | v0.3 target |
-| `@gittrix/adapter-github` | yes | no | v0.3+ target |
+| `@gittrix/adapter-github` | yes | no | v0.2 shipped |
 | `@gittrix/adapter-gitlab` | yes | no | v0.3+ target |
 | `@gittrix/adapter-codestorage` | yes | yes | v0.3 target |
 | `@gittrix/adapter-gitfork` | no | yes | v0.3 target |

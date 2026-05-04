@@ -14,6 +14,13 @@
         "@gittrix/core": "workspace:*",
       },
     },
+    "packages/adapter-github": {
+      "name": "@gittrix/adapter-github",
+      "version": "0.2.0-alpha.1",
+      "dependencies": {
+        "@gittrix/core": "workspace:*",
+      },
+    },
     "packages/adapter-local": {
       "name": "@gittrix/adapter-local",
       "version": "0.1.0",
@@ -52,6 +59,8 @@
   },
   "packages": {
     "@gittrix/adapter-cloudflare-artifacts": ["@gittrix/adapter-cloudflare-artifacts@workspace:packages/adapter-cloudflare-artifacts"],
+
+    "@gittrix/adapter-github": ["@gittrix/adapter-github@workspace:packages/adapter-github"],
 
     "@gittrix/adapter-local": ["@gittrix/adapter-local@workspace:packages/adapter-local"],
 

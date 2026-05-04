@@ -2,110 +2,157 @@
 
 # Gittrix
 
-Gittrix is a storage router for AI coding workflows.
+Storage routing for AI coding agents.
 
-It keeps agent work in ephemeral session repos and only moves accepted changes to your real repo when a human promotes them.
-
-## Why this exists
-
-- Agents generate a lot of throwaway code.
-- Direct agent commits pollute real history.
-- You need a clean promotion gate controlled by humans.
-
-Gittrix gives you that gate.
-
-## What you get
-
-- Ephemeral session workspace per task
-- Agent API with no durable-write path
-- Human-only `promote` operation
-- Baseline conflict detection before promote
-- Single synthetic commit on durable for clean history
-- Pluggable durable adapters — works with any git remote, GitHub, or self-hosted forge
-
-## Current status
-
-v0.2 interface split + cloudflare-artifacts adapter.
-
-Implemented now:
-
-- `@gittrix/core`
-- `@gittrix/adapter-local`
-- `@gittrix/adapter-cloudflare-artifacts`
-- `gittrix` CLI
-
-## Storage options
-
-```mermaid
-flowchart TD
-  A["Gittrix"]
-
-  subgraph Durable[Durable providers]
-    DL["Local\nAvailable"]
-    DCF["Cloudflare Artifacts\nAvailable"]
-    DR["Git Remote\nPlanned"]
-    DGH["GitHub\nPlanned"]
-    DGL["GitLab\nPlanned"]
-    DCS["Code Storage\nPlanned"]
-  end
-
-  subgraph Ephemeral[Ephemeral providers]
-    EL["Local\nAvailable"]
-    ECF["Cloudflare Artifacts\nAvailable"]
-    EGF["GitFork\nPlanned"]
-    ECS["Code Storage\nPlanned"]
-  end
-
-  A --> Durable
-  A --> Ephemeral
-
-  classDef core fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:2px;
-  classDef available fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20,stroke-width:2px;
-  classDef planned fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px;
-
-  class A core;
-  class DL,DCF,EL,ECF available;
-  class DR,DGH,DGL,DCS,EGF,ECS planned;
-```
-
-## How promotion works
-
-```mermaid
-flowchart TD
-  P["Promote session changes\ngittrix promote <session-id>"]
-  P --> A["Auto\nGittrix picks the best path"]
-  P --> C["Commit\nWrite one clean commit directly"]
-  P --> B["Branch\nSend changes to a branch"]
-  P --> PR["Pull Request\nOpen a PR (adapter must support PRs)"]
-  P --> PT["Patch\nExport as a patch file"]
-  P --> BR["Optional: --branch=<name>\nUse with Branch or Pull Request"]
-
-  classDef start fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:2px;
-  classDef direct fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20,stroke-width:2px;
-  classDef review fill:#FFF3E0,stroke:#FB8C00,color:#E65100,stroke-width:2px;
-  classDef export fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px;
-
-  class P start;
-  class A,C direct;
-  class B,PR,BR review;
-  class PT export;
-```
+Gittrix gives every agent task an ephemeral workspace and keeps your durable repo clean until a human promotes the accepted changes.
 
 ## Install
 
+Pick the durable adapter for the repo you want Gittrix to write to, plus an ephemeral adapter for agent workspaces.
+
 ```bash
-bun install
+bun add @gittrix/core @gittrix/adapter-local
 ```
 
-## Build, typecheck, test
+```bash
+bun add @gittrix/core @gittrix/adapter-github @gittrix/adapter-local
+```
 
 ```bash
+bun add @gittrix/core @gittrix/adapter-cloudflare-artifacts
+```
+
+CLI:
+
+```bash
+bun add -g gittrix
+```
+
+## Adapters
+
+| Package | Durable | Ephemeral | Status |
+| --- | --- | --- | --- |
+| `@gittrix/adapter-local` | yes | yes | available |
+| `@gittrix/adapter-github` | yes | no | available |
+| `@gittrix/adapter-cloudflare-artifacts` | yes | yes | available |
+
+## Basic usage
+
+Local durable repo + local ephemeral workspace:
+
+```ts
+import { GitTrix } from '@gittrix/core'
+import { LocalDurableAdapter, LocalEphemeralAdapter } from '@gittrix/adapter-local'
+
+const gittrix = new GitTrix({
+  durable: new LocalDurableAdapter({ path: '/path/to/repo', branch: 'main' }),
+  ephemeral: new LocalEphemeralAdapter({ sessionsRootDir: '/tmp/gittrix-sessions' }),
+})
+
+await gittrix.init()
+
+const session = await gittrix.startSession({
+  task: 'update docs',
+  durablePath: '/path/to/repo',
+  durableBranch: 'main',
+})
+
+const agent = session.forAgent()
+await agent.write('README.md', new TextEncoder().encode('# Updated\n'))
+await agent.commit('agent draft')
+
+const diff = await session.diff()
+console.log(diff)
+
+await session.promote({
+  selector: { mode: 'all' },
+  message: 'docs: update readme',
+})
+
+await gittrix.close()
+```
+
+## GitHub durable adapter
+
+Use GitHub when promoted changes should land in a GitHub repo.
+
+```ts
+import { GitTrix } from '@gittrix/core'
+import { GitHubDurableAdapter } from '@gittrix/adapter-github'
+import { LocalEphemeralAdapter } from '@gittrix/adapter-local'
+
+const durable = new GitHubDurableAdapter({
+  owner: 'acme',
+  repo: 'app',
+  branch: 'main',
+  token: process.env.GITHUB_TOKEN,
+})
+
+const gittrix = new GitTrix({
+  durable,
+  ephemeral: new LocalEphemeralAdapter({ sessionsRootDir: '/tmp/gittrix-sessions' }),
+})
+```
+
+Required GitHub token permissions:
+
+- Contents: read/write for commits and pushes
+- Pull requests: read/write if you call `openPullRequest`
+
+Create a branch commit and open a PR:
+
+```ts
+const result = await durable.applyCommit({
+  branch: 'gittrix/update-docs',
+  message: 'docs: update readme',
+  files: {
+    'README.md': new TextEncoder().encode('# Updated\n'),
+  },
+})
+
+const pr = await durable.openPullRequest({
+  title: 'Update docs',
+  head: result.branch,
+  base: 'main',
+  body: 'Promoted from a Gittrix session.',
+})
+
+console.log(pr.url)
+```
+
+## Cloudflare Artifacts adapter
+
+```ts
+import { GitTrix } from '@gittrix/core'
+import {
+  CloudflareArtifactsDurableAdapter,
+  CloudflareArtifactsEphemeralAdapter,
+} from '@gittrix/adapter-cloudflare-artifacts'
+
+const gittrix = new GitTrix({
+  durable: new CloudflareArtifactsDurableAdapter({
+    accountId: process.env.CF_ACCOUNT_ID!,
+    apiToken: process.env.CF_API_TOKEN!,
+    repoName: 'app',
+    branch: 'main',
+  }),
+  ephemeral: new CloudflareArtifactsEphemeralAdapter({
+    accountId: process.env.CF_ACCOUNT_ID!,
+    apiToken: process.env.CF_API_TOKEN!,
+  }),
+})
+```
+
+## Development
+
+```bash
+bun install
 bun run build
 bun run typecheck
 bun run test
 ```
 
-## Test harness
+Harness:
 
 ```bash
 bun run testharness --
@@ -113,21 +160,6 @@ bun run testharness -- --integration
 bun run testharness -- --all
 bun run testharness -- --typecheck
 ```
-
-## Docs
-
-- `docs/SPEC.md`
-- `docs/migration-v0.2.md`
-- `docs/test-scripts.md`
-
-
-## Mental model
-
-1. Start session from durable baseline.
-2. Agent edits and commits in ephemeral workspace.
-3. Human reviews diff and promotes accepted changes.
-4. Gittrix writes one clean commit to durable.
-5. Session is evicted per policy.
 
 ## License
 

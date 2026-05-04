@@ -18,6 +18,7 @@
 - `bun run --cwd packages/core test`
 - `bun run --cwd packages/adapter-local test`
 - `bun run --cwd packages/adapter-cloudflare-artifacts test`
+- `bun run --cwd packages/adapter-github test`
 - `bun run --cwd packages/cli test`
 - `bun run --cwd packages/harness test`
 
@@ -26,6 +27,7 @@
 - `bun run --cwd packages/core typecheck`
 - `bun run --cwd packages/adapter-local typecheck`
 - `bun run --cwd packages/adapter-cloudflare-artifacts typecheck`
+- `bun run --cwd packages/adapter-github typecheck`
 - `bun run --cwd packages/cli typecheck`
 - `bun run --cwd packages/harness typecheck`
 
@@ -34,6 +36,7 @@
 - `bun run --cwd packages/core build`
 - `bun run --cwd packages/adapter-local build`
 - `bun run --cwd packages/adapter-cloudflare-artifacts build`
+- `bun run --cwd packages/adapter-github build`
 - `bun run --cwd packages/cli build`
 - `bun run --cwd packages/harness build`
 
