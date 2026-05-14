@@ -1,6 +1,7 @@
 {
-  "name": "gittrix",
-  "version": "0.1.0",
+  "name": "@gittrix/cli",
+  "private": true,
+  "version": "0.1.4",
   "type": "module",
   "bin": {
     "gittrix": "dist/index.js"
@@ -13,7 +14,7 @@
     "test": "bun test --pass-with-no-tests"
   },
   "dependencies": {
-    "@gittrix/adapter-local": "workspace:*",
-    "@gittrix/core": "workspace:*"
+    "@gittrix/adapter-local": "0.1.4",
+    "@gittrix/core": "0.1.4"
   }
 }

@@ -4,6 +4,15 @@
   "workspaces": {
     "": {
       "name": "gittrix",
+      "dependencies": {
+        "@gittrix/adapter-cloudflare-artifacts": "0.2.0-alpha.2",
+        "@gittrix/adapter-codestorage": "0.3.0-alpha.1",
+        "@gittrix/adapter-github": "0.2.0-alpha.2",
+        "@gittrix/adapter-local": "0.1.4",
+        "@gittrix/core": "0.1.4",
+        "diff": "^5.2.0",
+        "nanoid": "^5.1.6",
+      },
       "devDependencies": {
         "@types/node": "^25.7.0",
         "typescript": "^5.9.3",
@@ -11,46 +20,46 @@
     },
     "packages/adapter-cloudflare-artifacts": {
       "name": "@gittrix/adapter-cloudflare-artifacts",
-      "version": "0.2.0-alpha.1",
+      "version": "0.2.0-alpha.2",
       "dependencies": {
-        "@gittrix/core": "workspace:*",
+        "@gittrix/core": "0.1.4",
       },
     },
     "packages/adapter-codestorage": {
       "name": "@gittrix/adapter-codestorage",
-      "version": "0.3.0-alpha.0",
+      "version": "0.3.0-alpha.1",
       "dependencies": {
-        "@gittrix/core": "workspace:*",
+        "@gittrix/core": "0.1.4",
       },
     },
     "packages/adapter-github": {
       "name": "@gittrix/adapter-github",
-      "version": "0.2.0-alpha.1",
+      "version": "0.2.0-alpha.2",
       "dependencies": {
-        "@gittrix/core": "workspace:*",
+        "@gittrix/core": "0.1.4",
       },
     },
     "packages/adapter-local": {
       "name": "@gittrix/adapter-local",
-      "version": "0.1.0",
+      "version": "0.1.4",
       "dependencies": {
-        "@gittrix/core": "workspace:*",
+        "@gittrix/core": "0.1.4",
       },
     },
     "packages/cli": {
-      "name": "gittrix",
-      "version": "0.1.0",
+      "name": "@gittrix/cli",
+      "version": "0.1.4",
       "bin": {
         "gittrix": "dist/index.js",
       },
       "dependencies": {
-        "@gittrix/adapter-local": "workspace:*",
-        "@gittrix/core": "workspace:*",
+        "@gittrix/adapter-local": "0.1.4",
+        "@gittrix/core": "0.1.4",
       },
     },
     "packages/core": {
       "name": "@gittrix/core",
-      "version": "0.1.0",
+      "version": "0.1.4",
       "dependencies": {
         "diff": "^5.2.0",
         "nanoid": "^5.1.6",
@@ -58,7 +67,7 @@
     },
     "packages/harness": {
       "name": "@gittrix/harness",
-      "version": "0.1.0",
+      "version": "0.1.4",
       "dependencies": {
         "@gittrix/adapter-cloudflare-artifacts": "workspace:*",
         "@gittrix/adapter-github": "workspace:*",
@@ -76,6 +85,8 @@
 
     "@gittrix/adapter-local": ["@gittrix/adapter-local@workspace:packages/adapter-local"],
 
+    "@gittrix/cli": ["@gittrix/cli@workspace:packages/cli"],
+
     "@gittrix/core": ["@gittrix/core@workspace:packages/core"],
 
     "@gittrix/harness": ["@gittrix/harness@workspace:packages/harness"],
@@ -83,8 +94,6 @@
     "@types/node": ["@types/node@25.7.0", "", { "dependencies": { "undici-types": "~7.21.0" } }, "sha512-z+pdZyxE+RTQE9AcboAZCb4otwcrvgHD+GlBpPgn0emDVt0ohrTMhAwlr2Wd9nZ+nihhYFxO2pThz3C5qSu2Eg=="],
 
     "diff": ["diff@5.2.2", "", {}, "sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A=="],
-
-    "gittrix": ["gittrix@workspace:packages/cli"],
 
     "nanoid": ["nanoid@5.1.9", "", { "bin": { "nanoid": "bin/nanoid.js" } }, "sha512-ZUvP7KeBLe3OZ1ypw6dI/TzYJuvHP77IM4Ry73waSQTLn8/g8rpdjfyVAh7t1/+FjBtG4lCP42MEbDxOsRpBMw=="],
 
