@@ -1,0 +1,90 @@
+{
+  "run_id": "2026-05-13-183158",
+  "project_name": "gittrix",
+  "target": "/Users/jshorton/proj/gittrix",
+  "project_type": "cli",
+  "mode": "existing",
+  "summary": {
+    "total": 13,
+    "passed": 13,
+    "failed": 0,
+    "duration_ms": 1368
+  },
+  "tests": [
+    {
+      "name": "packages/adapter-local/src/smoke.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/core/src/smoke.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/adapter-cloudflare-artifacts/src/ephemeral.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/adapter-cloudflare-artifacts/src/smoke.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/adapter-cloudflare-artifacts/src/integration.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/adapter-cloudflare-artifacts/src/api.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/cli/src/smoke.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/harness/src/local.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/harness/src/github-cloudflare.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/harness/src/integration.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/adapter-codestorage/src/smoke.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/adapter-github/src/smoke.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    },
+    {
+      "name": "packages/adapter-github/src/local-remote.test.ts",
+      "status": "pass",
+      "duration_ms": 1368
+    }
+  ],
+  "raw_output": {
+    "stdout": "bun test v1.3.10 (30e609e0)\nbun test v1.3.10 (30e609e0)\nbun test v1.3.10 (30e609e0)\nbun test v1.3.10 (30e609e0)\nbun test v1.3.10 (30e609e0)\nbun test v1.3.10 (30e609e0)\n",
+    "stderr": "$ bun run --cwd packages/core test && bun run --cwd packages/adapter-local test && bun run --cwd packages/adapter-cloudflare-artifacts test && bun run --cwd packages/adapter-codestorage test && bun run --cwd packages/adapter-github test && bun run --cwd packages/cli test\n$ bun test --pass-with-no-tests\n\nsrc/smoke.test.ts:\n(pass) core package loads\n\n 1 pass\n 0 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]\n$ bun test --pass-with-no-tests\n\nsrc/smoke.test.ts:\n(pass) startSession creates a git-backed local worktree workspace [153.00ms]\n(pass) ephemeral edits stay isolated and promote applies accepted changes [258.93ms]\n(pass) baseline drift on overlapping files raises conflict [154.19ms]\n(pass) eviction removes worktree workspace [110.41ms]\n\n 4 pass\n 0 fail\n 18 expect() calls\nRan 4 tests across 1 file. [688.00ms]\n$ bun test --pass-with-no-tests\n\nsrc/ephemeral.test.ts:\n(pass) ephemeral adapter tracks touched files and lists from subpaths [157.12ms]\n\nsrc/smoke.test.ts:\n(pass) adapter-cloudflare-artifacts package loads\n\nsrc/integration.test.ts:\n(skip) durable adapter can resolve head from real Cloudflare Artifacts repo\n\nsrc/api.test.ts:\n(pass) ArtifactsClient > creates repo and returns typed result\n(pass) ArtifactsClient > throws AuthError on 401 [0.32ms]\n(pass) ArtifactsClient > throws ArtifactsApiError on api envelope failure [0.08ms]\n\n 5 pass\n 1 skip\n 0 fail\n 11 expect() calls\nRan 6 tests across 4 files. [169.00ms]\n$ bun test --pass-with-no-tests\n\nsrc/smoke.test.ts:\n(pass) adapter-codestorage package loads\n(pass) adapter-codestorage methods are unavailable pending early access [0.77ms]\n\n 2 pass\n 0 fail\n 3 expect() calls\nRan 2 tests across 1 file. [10.00ms]\n$ bun test --pass-with-no-tests\n\nsrc/smoke.test.ts:\n(pass) adapter-github package loads [0.03ms]\n\nsrc/local-remote.test.ts:\n(pass) durable adapter reads and pushes through a git remote [408.81ms]\n\n 2 pass\n 0 fail\n 5 expect() calls\nRan 2 tests across 2 files. [420.00ms]\n$ bun test --pass-with-no-tests\n\nsrc/smoke.test.ts:\n(pass) cli package loads [0.05ms]\n\n 1 pass\n 0 fail\n 1 expect() calls\nRan 1 test across 1 file. [3.00ms]\n",
+    "exit_code": 0,
+    "command": "bun run test"
+  },
+  "paths": {
+    "run": "suitener-results/run-2026-05-13-183158.json",
+    "latest": "suitener-results/latest.json"
+  }
+}

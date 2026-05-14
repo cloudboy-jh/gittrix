@@ -1,7 +1,7 @@
 {
   "name": "gittrix",
   "private": false,
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Ephemeral storage router for AI coding agents",
   "license": "MIT",
   "repository": {
