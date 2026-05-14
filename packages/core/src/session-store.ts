@@ -102,6 +102,15 @@ function isMetadata(value: unknown): value is SessionMetadata {
     typeof v.createdAt === 'string' &&
     typeof v.updatedAt === 'string' &&
     typeof v.lastAccessAt === 'string' &&
+    (v.durablePath === undefined || typeof v.durablePath === 'string') &&
+    (v.durableBranch === undefined || typeof v.durableBranch === 'string') &&
+    (v.ephemeralPath === undefined || typeof v.ephemeralPath === 'string') &&
+    (v.workspaceKind === undefined ||
+      v.workspaceKind === 'worktree' ||
+      v.workspaceKind === 'clone' ||
+      v.workspaceKind === 'copy' ||
+      v.workspaceKind === 'remote') &&
+    (v.isGitBacked === undefined || typeof v.isGitBacked === 'boolean') &&
     Array.isArray(v.touchedFiles) &&
     !!v.promote
   )

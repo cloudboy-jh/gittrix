@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events'
+import { resolve } from 'node:path'
 
 import { nanoid } from 'nanoid'
 
@@ -79,15 +80,22 @@ export class GitTrix extends EventEmitter {
     const branch = opts.durableBranch ?? 'main'
     const durableRef = toRefUri({ type: 'local', path: opts.durablePath, branch })
     const baselineSha = await this.durable.getHead(branch)
-    await this.ephemeral.initWorkspace(id, { durableRef, sha: baselineSha })
+    const workspace = await this.ephemeral.initWorkspace(id, { durableRef, sha: baselineSha })
+    const durablePath = normalizeLocalPath(opts.durablePath)
+    const ephemeralPath = workspace?.localPath ? normalizeLocalPath(workspace.localPath) : normalizeLocalPath(this.store.workspacePath(id))
 
     const metadata: SessionMetadata = {
       metadataVersion: 1,
       id,
       task: opts.task,
       durableRef,
-      ephemeralRef: toRefUri({ type: 'local', path: this.store.workspacePath(id), branch }),
+      durablePath,
+      durableBranch: branch,
+      ephemeralRef: workspace?.ephemeralRef ?? toRefUri({ type: 'local', path: ephemeralPath, branch }),
+      ephemeralPath,
       baselineSha,
+      workspaceKind: workspace?.workspaceKind ?? 'copy',
+      isGitBacked: workspace?.isGitBacked ?? false,
       state: 'active',
       createdAt: now,
       updatedAt: now,
@@ -353,6 +361,10 @@ export class GitTrixSession implements UserSession {
   }
 
   private get durableBranch(): string {
-    return parseLocalRefUri(this.metadata.durableRef).branch ?? 'main'
+    return this.metadata.durableBranch ?? parseLocalRefUri(this.metadata.durableRef).branch ?? 'main'
   }
+}
+
+function normalizeLocalPath(value: string): string {
+  return resolve(value).replace(/\\/g, '/')
 }

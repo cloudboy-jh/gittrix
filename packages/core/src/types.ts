@@ -15,6 +15,21 @@ export interface AdapterCapabilities {
   latencyClass: 'local' | 'edge' | 'regional'
 }
 
+export type WorkspaceKind = 'worktree' | 'clone' | 'copy' | 'remote'
+
+export interface EphemeralWorkspaceCapabilities {
+  localPath?: string
+  isGitBacked: boolean
+  supportsShellCwd: boolean
+  supportsGitCommands: boolean
+  supportsPromote: boolean
+  workspaceKind: WorkspaceKind
+}
+
+export interface EphemeralWorkspaceInfo extends EphemeralWorkspaceCapabilities {
+  ephemeralRef?: string
+}
+
 export type SessionState = 'active' | 'promoted' | 'discarded' | 'expired'
 
 export interface EvictionPolicy {
@@ -54,8 +69,13 @@ export interface SessionMetadata {
   id: string
   task: string
   durableRef: string
+  durablePath?: string
+  durableBranch?: string
   ephemeralRef: string
+  ephemeralPath?: string
   baselineSha: string
+  workspaceKind?: WorkspaceKind
+  isGitBacked?: boolean
   state: SessionState
   createdAt: string
   updatedAt: string
@@ -136,7 +156,7 @@ export interface DurableAdapter {
 
 export interface EphemeralAdapter {
   capabilities(): AdapterCapabilities
-  initWorkspace(sessionId: string, baseline: { durableRef: string; sha: string }): Promise<void>
+  initWorkspace(sessionId: string, baseline: { durableRef: string; sha: string }): Promise<void | EphemeralWorkspaceInfo>
   read(sessionId: string, path: string): Promise<Uint8Array>
   write(sessionId: string, path: string, bytes: Uint8Array): Promise<void>
   delete(sessionId: string, path: string): Promise<void>

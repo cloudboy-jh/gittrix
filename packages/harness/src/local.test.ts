@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process'
 import { afterEach, expect, test } from 'bun:test'
 
 import { LocalDurableAdapter, LocalEphemeralAdapter } from '@gittrix/adapter-local'
+import { toRefUri } from '@gittrix/core'
 
 const cleanup: string[] = []
 
@@ -18,9 +19,11 @@ afterEach(async () => {
 test('local ephemeral tracks touched files', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gittrix-harness-eph-'))
   cleanup.push(root)
+  const repo = await createRepo(root)
+  const sha = await runGit(['rev-parse', 'HEAD'], repo)
 
   const eph = new LocalEphemeralAdapter({ sessionsRootDir: root })
-  await eph.initWorkspace('s1')
+  await eph.initWorkspace('s1', { durableRef: toRefUri({ type: 'local', path: repo, branch: 'main' }), sha })
   await eph.write('s1', 'src/a.ts', new TextEncoder().encode('a'))
   await eph.delete('s1', 'src/b.ts')
 
@@ -28,6 +31,20 @@ test('local ephemeral tracks touched files', async () => {
   expect(touched).toContain('src/a.ts')
   expect(touched).toContain('src/b.ts')
 })
+
+async function createRepo(root: string): Promise<string> {
+  const repo = join(root, 'repo')
+  await mkdir(repo, { recursive: true })
+  await runGit(['init', '-b', 'main'], repo)
+  await runGit(['config', 'user.name', 'harness'], repo)
+  await runGit(['config', 'user.email', 'harness@example.com'], repo)
+  await mkdir(join(repo, 'src'), { recursive: true })
+  await writeFile(join(repo, 'src', 'a.ts'), 'base\n', 'utf8')
+  await writeFile(join(repo, 'src', 'b.ts'), 'base\n', 'utf8')
+  await runGit(['add', '.'], repo)
+  await runGit(['commit', '-m', 'base'], repo)
+  return repo
+}
 
 test('local durable applyCommit writes and commits selected files', async () => {
   const repo = await mkdtemp(join(tmpdir(), 'gittrix-harness-dur-'))
