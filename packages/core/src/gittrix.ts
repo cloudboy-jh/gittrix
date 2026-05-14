@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events'
+import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { nanoid } from 'nanoid'
@@ -78,18 +79,21 @@ export class GitTrix extends EventEmitter {
     const id = `sess_${nanoid(12)}`
     const now = new Date().toISOString()
     const branch = opts.durableBranch ?? 'main'
-    const durableRef = toRefUri({ type: 'local', path: opts.durablePath, branch })
+    const durableRef = opts.durableRef ?? this.durable.ref?.(branch) ?? (opts.durablePath ? toRefUri({ type: 'local', path: opts.durablePath, branch }) : null)
+    if (!durableRef) {
+      throw new CapabilityMissingError('Durable adapter must expose ref() or startSession must provide durableRef/durablePath')
+    }
     const baselineSha = await this.durable.getHead(branch)
-    const workspace = await this.ephemeral.initWorkspace(id, { durableRef, sha: baselineSha })
-    const durablePath = normalizeLocalPath(opts.durablePath)
-    const ephemeralPath = workspace?.localPath ? normalizeLocalPath(workspace.localPath) : normalizeLocalPath(this.store.workspacePath(id))
+    const workspace = await this.ephemeral.initWorkspace(id, { durableRef, sha: baselineSha }, this.durable)
+    const durablePath = opts.durablePath ? await normalizeLocalPath(opts.durablePath) : undefined
+    const ephemeralPath = workspace?.localPath ? await normalizeLocalPath(workspace.localPath) : await normalizeLocalPath(this.store.workspacePath(id))
 
     const metadata: SessionMetadata = {
       metadataVersion: 1,
       id,
       task: opts.task,
       durableRef,
-      durablePath,
+      ...(durablePath ? { durablePath } : {}),
       durableBranch: branch,
       ephemeralRef: workspace?.ephemeralRef ?? toRefUri({ type: 'local', path: ephemeralPath, branch }),
       ephemeralPath,
@@ -365,6 +369,10 @@ export class GitTrixSession implements UserSession {
   }
 }
 
-function normalizeLocalPath(value: string): string {
-  return resolve(value).replace(/\\/g, '/')
+async function normalizeLocalPath(value: string): Promise<string> {
+  try {
+    return realpathSync.native(value).replace(/\\/g, '/')
+  } catch {
+    return resolve(value).replace(/\\/g, '/')
+  }
 }

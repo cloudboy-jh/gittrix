@@ -28,6 +28,10 @@ export class LocalDurableAdapter implements DurableAdapter {
     return { git: true, push: false, fetch: false, history: true, ttl: false, latencyClass: 'local' }
   }
 
+  public ref(branch = this.branch): string {
+    return toRefUri({ type: 'local', path: this.path, branch })
+  }
+
   public async getHead(branch = this.branch): Promise<string> {
     return (await runGit(['rev-parse', branch], this.path)).stdout.trim()
   }
@@ -289,7 +293,7 @@ export class LocalFsAdapter {
 
 async function listFilesRecursive(path: string, root: string): Promise<ListEntry[]> {
   const entries: ListEntry[] = []
-  let dirEntries: Awaited<ReturnType<typeof readdir>>
+  let dirEntries: Array<{ name: string; isDirectory(): boolean }>
   try {
     dirEntries = await readdir(path, { withFileTypes: true })
   } catch {

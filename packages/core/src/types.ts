@@ -143,6 +143,7 @@ export interface LocalSessionAdapter {
 
 export interface DurableAdapter {
   capabilities(): AdapterCapabilities
+  ref?(branch?: string): string
   getHead(branch: string): Promise<string>
   readAtSha(sha: string, path: string): Promise<Uint8Array>
   listAtSha(sha: string, path?: string): Promise<ListEntry[]>
@@ -156,7 +157,7 @@ export interface DurableAdapter {
 
 export interface EphemeralAdapter {
   capabilities(): AdapterCapabilities
-  initWorkspace(sessionId: string, baseline: { durableRef: string; sha: string }): Promise<void | EphemeralWorkspaceInfo>
+  initWorkspace(sessionId: string, baseline: { durableRef: string; sha: string }, durable?: DurableAdapter): Promise<void | EphemeralWorkspaceInfo>
   read(sessionId: string, path: string): Promise<Uint8Array>
   write(sessionId: string, path: string, bytes: Uint8Array): Promise<void>
   delete(sessionId: string, path: string): Promise<void>
@@ -168,7 +169,8 @@ export interface EphemeralAdapter {
 
 export interface StartSessionOpts {
   task: string
-  durablePath: string
+  durablePath?: string
+  durableRef?: string
   durableBranch?: string
   eviction?: Partial<EvictionPolicy>
 }

@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
-import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, ListEntry } from '@gittrix/core'
+import { toRefUri } from '@gittrix/core'
+import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, EphemeralWorkspaceInfo, ListEntry } from '@gittrix/core'
 
 import { ArtifactsClient } from './api.js'
 import { runGit } from './run-git.js'
@@ -40,6 +41,10 @@ export class CloudflareArtifactsDurableAdapter implements DurableAdapter {
 
   public capabilities(): AdapterCapabilities {
     return { git: true, push: true, fetch: true, history: true, ttl: false, latencyClass: 'regional' }
+  }
+
+  public ref(branch = this.branch): string {
+    return toRefUri({ type: 'cloudflare', namespace: this.options.namespace ?? 'default', key: `${this.options.repoName}#${branch}` })
   }
 
   public async getHead(branch = this.branch): Promise<string> {
@@ -178,14 +183,16 @@ export class CloudflareArtifactsDurableAdapter implements DurableAdapter {
 
 export class CloudflareArtifactsEphemeralAdapter implements EphemeralAdapter {
   private readonly workingRoot: string
+  private readonly namespace: string
   private readonly client: ArtifactsClient
 
   public constructor(options: CloudflareArtifactsEphemeralOptions) {
     this.workingRoot = resolve(options.workingRoot ?? join(process.env.HOME ?? process.cwd(), '.gittrix', 'cf-artifacts-ephemeral'))
+    this.namespace = options.namespace ?? 'default'
     this.client = new ArtifactsClient({
       accountId: options.accountId,
       apiToken: options.apiToken,
-      namespace: options.namespace ?? 'default',
+      namespace: this.namespace,
     })
   }
 
@@ -193,18 +200,34 @@ export class CloudflareArtifactsEphemeralAdapter implements EphemeralAdapter {
     return { git: true, push: false, fetch: false, history: false, ttl: true, latencyClass: 'regional' }
   }
 
-  public async initWorkspace(sessionId: string): Promise<void> {
+  public async initWorkspace(
+    sessionId: string,
+    baseline?: { durableRef: string; sha: string },
+    durable?: DurableAdapter,
+  ): Promise<EphemeralWorkspaceInfo> {
     const repoName = `gittrix-eph-${sessionId}`
     const repo = await this.client.createRepo(repoName)
     const token = await this.client.mintToken(repoName)
     const path = this.sessionPath(sessionId)
     await rm(path, { recursive: true, force: true })
+    await mkdir(dirname(path), { recursive: true })
     try {
       await runGit(['clone', withAuthToken(repo.remote, token.token), path], process.cwd())
     } catch {
       await mkdir(path, { recursive: true })
+      await runGit(['init'], path)
     }
+    await this.ensureBaselineCommit(path, baseline, durable)
     await this.writeTouched(sessionId, [])
+    return {
+      localPath: normalizePath(path),
+      ephemeralRef: toRefUri({ type: 'cloudflare', namespace: this.namespace, key: repoName }),
+      isGitBacked: true,
+      supportsShellCwd: true,
+      supportsGitCommands: true,
+      supportsPromote: true,
+      workspaceKind: 'remote',
+    }
   }
   public async read(sessionId: string, path: string): Promise<Uint8Array> {
     return new Uint8Array(await readFile(join(this.sessionPath(sessionId), path)))
@@ -233,7 +256,9 @@ export class CloudflareArtifactsEphemeralAdapter implements EphemeralAdapter {
     return out
   }
   public async touchedFiles(sessionId: string): Promise<string[]> {
-    return this.readTouched(sessionId)
+    const touched = new Set(await this.readTouched(sessionId))
+    await this.addGitChangedFiles(sessionId, touched)
+    return [...touched].sort((a, b) => a.localeCompare(b))
   }
   public async destroy(sessionId: string): Promise<void> {
     await rm(this.sessionPath(sessionId), { recursive: true, force: true })
@@ -267,17 +292,57 @@ export class CloudflareArtifactsEphemeralAdapter implements EphemeralAdapter {
       await this.writeTouched(sessionId, files)
     }
   }
+
+  private async ensureBaselineCommit(path: string, baseline?: { durableRef: string; sha: string }, durable?: DurableAdapter): Promise<void> {
+    await runGit(['checkout', '-B', 'gittrix-baseline'], path)
+    await runGit(['config', 'user.name', 'gittrix-bot'], path)
+    await runGit(['config', 'user.email', 'gittrix-bot@users.noreply.local'], path)
+
+    if (baseline && durable) {
+      for (const entry of await durable.listAtSha(baseline.sha)) {
+        if (entry.type !== 'file' || isInternalPath(entry.path)) continue
+        const destination = join(path, normalizePath(entry.path))
+        await mkdir(dirname(destination), { recursive: true })
+        await writeFile(destination, await durable.readAtSha(baseline.sha, entry.path))
+      }
+    }
+
+    await runGit(['add', '-A'], path)
+    const staged = await runGit(['diff', '--cached', '--name-only'], path)
+    if (staged.stdout.trim()) {
+      await runGit(['commit', '-m', `gittrix baseline ${baseline?.sha ?? 'empty'}`], path)
+    } else if (!(await gitSucceeds(['rev-parse', '--verify', 'HEAD'], path))) {
+      await runGit(['commit', '--allow-empty', '-m', `gittrix baseline ${baseline?.sha ?? 'empty'}`], path)
+    }
+  }
+
+  private async addGitChangedFiles(sessionId: string, touched: Set<string>): Promise<void> {
+    const path = this.sessionPath(sessionId)
+    if (!(await gitSucceeds(['rev-parse', '--is-inside-work-tree'], path))) return
+    await this.addGitOutput(touched, await runGit(['diff', '--name-only', 'HEAD', '--'], path))
+    await this.addGitOutput(touched, await runGit(['diff', '--cached', '--name-only', '--'], path))
+    await this.addGitOutput(touched, await runGit(['ls-files', '--others', '--exclude-standard'], path))
+  }
+
+  private async addGitOutput(touched: Set<string>, result: Awaited<ReturnType<typeof runGit>>): Promise<void> {
+    for (const line of result.stdout.split('\n')) {
+      const path = normalizePath(line.trim())
+      if (path && !isInternalPath(path)) {
+        touched.add(path)
+      }
+    }
+  }
 }
 
 async function walk(root: string, dir: string, out: ListEntry[]): Promise<void> {
-  let entries: Awaited<ReturnType<typeof readdir>>
+  let entries: Array<{ name: string; isDirectory(): boolean }>
   try {
     entries = await readdir(dir, { withFileTypes: true })
   } catch {
     return
   }
   for (const entry of entries) {
-    if (entry.name === '.git' || entry.name === '.gittrix') continue
+    if (entry.name === '.git' || entry.name === '.gittrix' || entry.name === '.glib') continue
     const full = join(dir, entry.name)
     const rel = full.slice(root.length + 1).replace(/\\/g, '/')
     if (entry.isDirectory()) {
@@ -301,7 +366,22 @@ function normalizePath(path: string): string {
   return path.replace(/\\/g, '/')
 }
 
+function isInternalPath(path: string): boolean {
+  return (
+    path === '.git' ||
+    path.startsWith('.git/') ||
+    path === '.gittrix' ||
+    path.startsWith('.gittrix/') ||
+    path === '.glib' ||
+    path.startsWith('.glib/') ||
+    path === '.gittrix-touched.json'
+  )
+}
+
 function withAuthToken(remote: string, token: string): string {
+  if (!remote.startsWith('http://') && !remote.startsWith('https://')) {
+    return remote
+  }
   const url = new URL(remote)
   url.username = 'oauth2'
   url.password = token
