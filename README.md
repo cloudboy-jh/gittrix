@@ -2,7 +2,7 @@
 
 # Gittrix
 
-Storage routing for AI coding agents. <!-- edited by gittrix session -->
+Storage routing for AI coding agents. 🚀 <!-- edited by gittrix session -->
 
 Gittrix routes AI agent writes into ephemeral workspaces and promotes only human-approved changes back to durable git storage.
 
