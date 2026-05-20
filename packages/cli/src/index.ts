@@ -45,6 +45,34 @@ try {
     const all = await gittrix.listSessions()
     const filtered = !status || status === 'all' ? all : all.filter((s) => s.state === status)
     output(filtered, jsonMode)
+  } else if (command === 'session' && subcommand === 'info') {
+    const session = await gittrix.getSession(mustPositional(third, 'session-id'))
+    output(await session.info(), jsonMode)
+  } else if (command === 'session' && subcommand === 'read') {
+    const session = await gittrix.getSession(mustPositional(third, 'session-id'))
+    const path = mustPositional(fourth, 'path')
+    const bytes = await session.read(path)
+    if (jsonMode) {
+      output({ path, contentBase64: Buffer.from(bytes).toString('base64') }, jsonMode)
+    } else {
+      process.stdout.write(Buffer.from(bytes))
+    }
+  } else if (command === 'session' && subcommand === 'write') {
+    const session = await gittrix.getSession(mustPositional(third, 'session-id'))
+    const path = mustPositional(fourth, 'path')
+    await session.write(path, await readStdin())
+    output({ written: path }, jsonMode)
+  } else if (command === 'session' && subcommand === 'delete') {
+    const session = await gittrix.getSession(mustPositional(third, 'session-id'))
+    const path = mustPositional(fourth, 'path')
+    await session.delete(path)
+    output({ deleted: path }, jsonMode)
+  } else if (command === 'session' && subcommand === 'list-files') {
+    const session = await gittrix.getSession(mustPositional(third, 'session-id'))
+    output(await session.list(fourth), jsonMode)
+  } else if (command === 'session' && subcommand === 'touched') {
+    const session = await gittrix.getSession(mustPositional(third, 'session-id'))
+    output(await session.touchedFiles(), jsonMode)
   } else if (command === 'session' && subcommand === 'diff') {
     const session = await gittrix.getSession(mustPositional(third, 'session-id'))
     output({ diff: await session.diff() }, jsonMode)
@@ -198,6 +226,12 @@ function printHelp(jsonMode: boolean): void {
     '  gittrix session start "<task>" <durable-path> [branch]',
     '  gittrix s start "<task>" <durable-path> [branch]',
     '  gittrix session list [active|promoted|discarded|expired|all]',
+    '  gittrix session info <session-id>',
+    '  gittrix session read <session-id> <path>',
+    '  gittrix session write <session-id> <path> < file',
+    '  gittrix session delete <session-id> <path>',
+    '  gittrix session list-files <session-id> [path]',
+    '  gittrix session touched <session-id>',
     '  gittrix session diff <session-id>',
     '  gittrix session log <session-id>',
     '  gittrix session evict <session-id>',
@@ -244,4 +278,12 @@ function outputError(error: unknown, jsonMode: boolean): void {
 
   const message = error instanceof Error ? error.message : String(error)
   process.stderr.write(`${message}\n`)
+}
+
+async function readStdin(): Promise<Uint8Array> {
+  const chunks: Buffer[] = []
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  return new Uint8Array(Buffer.concat(chunks))
 }

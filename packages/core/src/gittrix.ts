@@ -18,6 +18,7 @@ import type {
   ListEntry,
   PromoteOpts,
   PromoteResult,
+  SessionInfo,
   SessionMetadata,
   StartSessionOpts,
   UserSession,
@@ -191,15 +192,28 @@ export class GitTrixSession implements UserSession {
 
   public forAgent(): AgentSession {
     return {
+      info: this.info.bind(this),
       read: this.read.bind(this),
       write: this.write.bind(this),
       delete: this.delete.bind(this),
       commit: this.commit.bind(this),
       writeAndCommit: this.writeAndCommit.bind(this),
       list: this.list.bind(this),
+      touchedFiles: this.touchedFiles.bind(this),
+      workspacePath: this.workspacePath.bind(this),
       diff: this.diff.bind(this),
       log: this.log.bind(this),
     }
+  }
+
+  public async info(): Promise<SessionInfo> {
+    await this.ensureActive()
+    await this.touch()
+    return this.toInfo(await this.ephemeral.touchedFiles(this.metadata.id))
+  }
+
+  public workspacePath(): string | undefined {
+    return this.metadata.ephemeralPath
   }
 
   public async read(path: string): Promise<Uint8Array> {
@@ -257,6 +271,12 @@ export class GitTrixSession implements UserSession {
       baselineMap.set(e.path, e)
     }
     return [...baselineMap.values()].sort((a, b) => a.path.localeCompare(b.path))
+  }
+
+  public async touchedFiles(): Promise<string[]> {
+    await this.ensureActive()
+    await this.touch()
+    return this.ephemeral.touchedFiles(this.metadata.id)
   }
 
   public async diff(): Promise<string> {
@@ -356,6 +376,29 @@ export class GitTrixSession implements UserSession {
   private defaultPromoteMessage(): string {
     const task = this.metadata.task.trim()
     return task.length > 0 ? `gittrix: ${task}` : `gittrix: promote session ${this.metadata.id}`
+  }
+
+  private toInfo(touchedFiles: string[]): SessionInfo {
+    const hasWorkspace = Boolean(this.metadata.ephemeralPath)
+    return {
+      sessionId: this.metadata.id,
+      task: this.metadata.task,
+      durableRef: this.metadata.durableRef,
+      ...(this.metadata.durablePath ? { durablePath: this.metadata.durablePath } : {}),
+      ...(this.metadata.durableBranch ? { durableBranch: this.metadata.durableBranch } : {}),
+      ephemeralRef: this.metadata.ephemeralRef,
+      ...(this.metadata.ephemeralPath ? { workspacePath: this.metadata.ephemeralPath } : {}),
+      baselineSha: this.metadata.baselineSha,
+      state: this.metadata.state,
+      touchedFiles,
+      capabilities: {
+        filesystem: hasWorkspace,
+        apiReadWrite: true,
+        patchImport: false,
+        patchExport: false,
+        promote: true,
+      },
+    }
   }
 
   private async ensureActive(): Promise<void> {

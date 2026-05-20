@@ -88,6 +88,28 @@ export interface SessionMetadata {
   }
 }
 
+export interface SessionAccessCapabilities {
+  filesystem: boolean
+  apiReadWrite: boolean
+  patchImport: boolean
+  patchExport: boolean
+  promote: boolean
+}
+
+export interface SessionInfo {
+  sessionId: string
+  task: string
+  durableRef: string
+  durablePath?: string
+  durableBranch?: string
+  ephemeralRef: string
+  workspacePath?: string
+  baselineSha: string
+  state: SessionState
+  touchedFiles: string[]
+  capabilities: SessionAccessCapabilities
+}
+
 export interface CommitEntry {
   sha: string
   authorName: string
@@ -176,12 +198,15 @@ export interface StartSessionOpts {
 }
 
 export interface AgentSession {
+  info(): Promise<SessionInfo>
   read(path: string): Promise<Uint8Array>
   write(path: string, bytes: Uint8Array): Promise<void>
   delete(path: string): Promise<void>
   commit(message: string): Promise<string>
   writeAndCommit(opts: { files: Record<string, Uint8Array>; message: string }): Promise<string>
   list(path?: string): Promise<ListEntry[]>
+  touchedFiles(): Promise<string[]>
+  workspacePath(): string | undefined
   diff(): Promise<string>
   log(): Promise<CommitEntry[]>
 }
