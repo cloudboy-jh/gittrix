@@ -1,6 +1,6 @@
 {
   "name": "@gittrix/adapter-local",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,6 +19,6 @@
     "test": "bun test --pass-with-no-tests"
   },
   "dependencies": {
-    "@gittrix/core": "0.1.4"
+    "@gittrix/core": "0.1.5"
   }
 }

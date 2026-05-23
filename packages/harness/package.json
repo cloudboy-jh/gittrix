@@ -1,6 +1,6 @@
 {
   "name": "@gittrix/harness",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,9 +10,9 @@
     "run": "bun src/runner.ts"
   },
   "dependencies": {
-    "@gittrix/adapter-cloudflare-artifacts": "0.2.0-alpha.2",
-    "@gittrix/adapter-github": "0.2.0-alpha.2",
-    "@gittrix/adapter-local": "0.1.4",
-    "@gittrix/core": "0.1.4"
+    "@gittrix/adapter-cloudflare-artifacts": "0.2.0-alpha.3",
+    "@gittrix/adapter-github": "0.2.0-alpha.3",
+    "@gittrix/adapter-local": "0.1.5",
+    "@gittrix/core": "0.1.5"
   }
 }

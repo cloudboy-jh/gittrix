@@ -1,7 +1,7 @@
 {
   "name": "gittrix",
   "private": false,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Ephemeral storage router for AI coding agents",
   "license": "MIT",
   "repository": {
@@ -63,12 +63,12 @@
     "tsconfig.base.json"
   ],
   "dependencies": {
-    "@gittrix/adapter-cloudflare-artifacts": "0.2.0-alpha.2",
-    "@gittrix/adapter-codestorage": "0.3.0-alpha.1",
-    "@gittrix/adapter-github": "0.2.0-alpha.2",
-    "@gittrix/adapter-local": "0.1.4",
-    "@gittrix/core": "0.1.4",
-    "@gittrix/mcp": "0.1.0",
+    "@gittrix/adapter-cloudflare-artifacts": "0.2.0-alpha.3",
+    "@gittrix/adapter-codestorage": "0.3.0-alpha.2",
+    "@gittrix/adapter-github": "0.2.0-alpha.3",
+    "@gittrix/adapter-local": "0.1.5",
+    "@gittrix/core": "0.1.5",
+    "@gittrix/mcp": "0.1.1",
     "diff": "^5.2.0",
     "nanoid": "^5.1.6"
   },
