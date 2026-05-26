@@ -1,7 +1,7 @@
 {
   "name": "@gittrix/cli",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.7",
   "type": "module",
   "bin": {
     "gittrix": "dist/index.js"
@@ -14,7 +14,7 @@
     "test": "bun test --pass-with-no-tests"
   },
   "dependencies": {
-    "@gittrix/adapter-local": "0.1.5",
-    "@gittrix/core": "0.1.5"
+    "@gittrix/adapter-local": "0.1.7",
+    "@gittrix/core": "0.1.7"
   }
 }
