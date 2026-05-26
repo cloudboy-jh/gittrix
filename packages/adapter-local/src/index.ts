@@ -1,8 +1,8 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 
-import { parseLocalRefUri, toRefUri } from '@gittrix/core'
-import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, EphemeralWorkspaceInfo, ListEntry, WorkspaceKind } from '@gittrix/core'
+import { parseLocalRefUri, toRefUri } from '../../core/dist/index.js'
+import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, EphemeralWorkspaceInfo, ListEntry, WorkspaceKind } from '../../core/dist/index.js'
 
 import { runGit } from './run-git.js'
 

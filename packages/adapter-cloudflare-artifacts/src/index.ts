@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
-import { toRefUri } from '@gittrix/core'
-import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, EphemeralWorkspaceInfo, ListEntry } from '@gittrix/core'
+import { toRefUri } from '../../core/dist/index.js'
+import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, EphemeralWorkspaceInfo, ListEntry } from '../../core/dist/index.js'
 
 import { ArtifactsClient } from './api.js'
 import { runGit } from './run-git.js'

@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto'
 import { mkdir, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
-import { AuthError, toRefUri } from '@gittrix/core'
-import type { AdapterCapabilities, DurableAdapter, ListEntry } from '@gittrix/core'
+import { AuthError, toRefUri } from '../../core/dist/index.js'
+import type { AdapterCapabilities, DurableAdapter, ListEntry } from '../../core/dist/index.js'
 
 import { runGit } from './run-git.js'
 

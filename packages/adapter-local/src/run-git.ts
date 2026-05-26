@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 
-import { AdapterUnavailableError } from '@gittrix/core'
+import { AdapterUnavailableError } from '../../core/dist/index.js'
 
 export interface GitResult {
   stdout: string

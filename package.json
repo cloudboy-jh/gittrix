@@ -1,7 +1,7 @@
 {
   "name": "gittrix",
   "private": false,
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Ephemeral storage router for AI coding agents",
   "license": "MIT",
   "repository": {
@@ -16,7 +16,8 @@
   "main": "./packages/core/dist/index.js",
   "types": "./packages/core/dist/index.d.ts",
   "bin": {
-    "gittrix": "./packages/cli/dist/index.js"
+    "gittrix": "./packages/cli/dist/index.js",
+    "gittrix-mcp": "./packages/mcp/dist/index.js"
   },
   "exports": {
     ".": {
@@ -53,7 +54,9 @@
     "build": "bun run --cwd packages/core build && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-codestorage build && bun run --cwd packages/adapter-github build && bun run --cwd packages/cli build && bun run --cwd packages/mcp build && bun run --cwd packages/harness build",
     "typecheck": "bun run --cwd packages/core build && bun run --cwd packages/core typecheck && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-local typecheck && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-cloudflare-artifacts typecheck && bun run --cwd packages/adapter-codestorage build && bun run --cwd packages/adapter-codestorage typecheck && bun run --cwd packages/adapter-github build && bun run --cwd packages/adapter-github typecheck && bun run --cwd packages/cli typecheck && bun run --cwd packages/mcp typecheck && bun run --cwd packages/harness typecheck",
     "test": "bun run --cwd packages/core test && bun run --cwd packages/adapter-local test && bun run --cwd packages/adapter-cloudflare-artifacts test && bun run --cwd packages/adapter-codestorage test && bun run --cwd packages/adapter-github test && bun run --cwd packages/cli test && bun run --cwd packages/mcp test",
-    "testharness": "bun run --cwd packages/harness run"
+    "testharness": "bun run --cwd packages/harness run",
+    "prepack": "bun run build && node scripts/validate-publish.mjs",
+    "validate:publish": "node scripts/validate-publish.mjs"
   },
   "files": [
     "README.md",
@@ -63,14 +66,10 @@
     "tsconfig.base.json"
   ],
   "dependencies": {
-    "@gittrix/adapter-cloudflare-artifacts": "0.2.0-alpha.3",
-    "@gittrix/adapter-codestorage": "0.3.0-alpha.2",
-    "@gittrix/adapter-github": "0.2.0-alpha.3",
-    "@gittrix/adapter-local": "0.1.5",
-    "@gittrix/core": "0.1.5",
-    "@gittrix/mcp": "0.1.1",
+    "@modelcontextprotocol/sdk": "^1.20.0",
     "diff": "^5.2.0",
-    "nanoid": "^5.1.6"
+    "nanoid": "^5.1.6",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^25.7.0",

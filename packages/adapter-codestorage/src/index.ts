@@ -1,5 +1,5 @@
-import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, ListEntry } from '@gittrix/core'
-import { AdapterUnavailableError } from '@gittrix/core'
+import type { AdapterCapabilities, DurableAdapter, EphemeralAdapter, ListEntry } from '../../core/dist/index.js'
+import { AdapterUnavailableError } from '../../core/dist/index.js'
 
 const unavailableMessage = 'Code Storage adapter pending early access'
 

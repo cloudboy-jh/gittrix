@@ -1,4 +1,4 @@
-import { AuthError } from '@gittrix/core'
+import { AuthError } from '../../core/dist/index.js'
 
 export interface ArtifactsClientOptions {
   accountId: string

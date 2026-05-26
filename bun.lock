@@ -1,17 +1,14 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "gittrix",
       "dependencies": {
-        "@gittrix/adapter-cloudflare-artifacts": "0.2.0-alpha.2",
-        "@gittrix/adapter-codestorage": "0.3.0-alpha.1",
-        "@gittrix/adapter-github": "0.2.0-alpha.2",
-        "@gittrix/adapter-local": "0.1.4",
-        "@gittrix/core": "0.1.4",
-        "@gittrix/mcp": "0.1.0",
+        "@modelcontextprotocol/sdk": "^1.20.0",
         "diff": "^5.2.0",
         "nanoid": "^5.1.6",
+        "zod": "^3.25.76",
       },
       "devDependencies": {
         "@types/node": "^25.7.0",
@@ -20,35 +17,35 @@
     },
     "packages/adapter-cloudflare-artifacts": {
       "name": "@gittrix/adapter-cloudflare-artifacts",
-      "version": "0.2.0-alpha.2",
+      "version": "0.2.0-alpha.3",
       "dependencies": {
         "@gittrix/core": "0.1.4",
       },
     },
     "packages/adapter-codestorage": {
       "name": "@gittrix/adapter-codestorage",
-      "version": "0.3.0-alpha.1",
+      "version": "0.3.0-alpha.2",
       "dependencies": {
         "@gittrix/core": "0.1.4",
       },
     },
     "packages/adapter-github": {
       "name": "@gittrix/adapter-github",
-      "version": "0.2.0-alpha.2",
+      "version": "0.2.0-alpha.3",
       "dependencies": {
         "@gittrix/core": "0.1.4",
       },
     },
     "packages/adapter-local": {
       "name": "@gittrix/adapter-local",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@gittrix/core": "0.1.4",
       },
     },
     "packages/cli": {
       "name": "@gittrix/cli",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "bin": {
         "gittrix": "dist/index.js",
       },
@@ -59,7 +56,7 @@
     },
     "packages/core": {
       "name": "@gittrix/core",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "diff": "^5.2.0",
         "nanoid": "^5.1.6",
@@ -67,7 +64,7 @@
     },
     "packages/harness": {
       "name": "@gittrix/harness",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@gittrix/adapter-cloudflare-artifacts": "workspace:*",
         "@gittrix/adapter-github": "workspace:*",
@@ -77,7 +74,7 @@
     },
     "packages/mcp": {
       "name": "@gittrix/mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "bin": {
         "gittrix-mcp": "dist/index.js",
       },

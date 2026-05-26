@@ -3,8 +3,8 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import { LocalDurableAdapter, LocalEphemeralAdapter } from '@gittrix/adapter-local'
-import { GittrixError, GitTrix } from '@gittrix/core'
+import { LocalDurableAdapter, LocalEphemeralAdapter } from '../../adapter-local/dist/index.js'
+import { GittrixError, GitTrix } from '../../core/dist/index.js'
 
 interface ParsedArgs {
   positional: string[]

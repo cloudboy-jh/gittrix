@@ -3,9 +3,9 @@
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-import { LocalDurableAdapter, LocalEphemeralAdapter } from '@gittrix/adapter-local'
-import { GitTrix } from '@gittrix/core'
-import type { ListEntry, SessionInfo, SessionMetadata } from '@gittrix/core'
+import { LocalDurableAdapter, LocalEphemeralAdapter } from '../../adapter-local/dist/index.js'
+import { GitTrix } from '../../core/dist/index.js'
+import type { ListEntry, SessionInfo, SessionMetadata } from '../../core/dist/index.js'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'

@@ -1,4 +1,4 @@
-import { AdapterUnavailableError } from '@gittrix/core'
+import { AdapterUnavailableError } from '../../core/dist/index.js'
 
 export class CodeStorageApiError extends AdapterUnavailableError {
   public constructor(message = 'Code Storage adapter pending early access') {
