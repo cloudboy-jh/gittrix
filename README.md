@@ -2,7 +2,7 @@
 
 # Gittrix
 
-Storage routing for AI coding agents. 🚀 <!-- edited by gittrix session -->
+Storage routing for AI coding agents. 🚀
 
 Gittrix routes AI agent writes into ephemeral workspaces and promotes only human-approved changes back to durable git storage.
 
@@ -12,12 +12,81 @@ Agents get an `AgentSession` for reads, writes, diffs, and synthetic commits. Hu
 
 | Package | Version | Role | State |
 | --- | ---: | --- | --- |
-| `@gittrix/core` | `0.1.4` | Session orchestration and promotion API | Available |
-| `@gittrix/adapter-local` | `0.1.4` | Local durable git repos and local ephemeral workspaces | Available |
-| `@gittrix/adapter-github` | `0.2.0-alpha.2` | GitHub durable storage | Alpha |
-| `@gittrix/adapter-cloudflare-artifacts` | `0.2.0-alpha.2` | Cloudflare Artifacts durable and ephemeral storage | Alpha |
-| `@gittrix/adapter-codestorage` | `0.3.0-alpha.1` | Code Storage adapter | Scaffold only |
-| `gittrix` CLI | `0.1.4` | Local repo/session commands | Local-only |
+| `@gittrix/core` | `0.1.7` | Session orchestration and promotion API | Available |
+| `@gittrix/adapter-local` | `0.1.7` | Local durable git repos and local ephemeral workspaces | Available |
+| `@gittrix/adapter-github` | `0.1.7` | GitHub durable storage | Available |
+| `@gittrix/adapter-cloudflare-artifacts` | `0.1.7` | Cloudflare Artifacts durable and ephemeral storage | Available |
+| `@gittrix/adapter-codestorage` | `0.1.7` | Code Storage adapter | Scaffold only |
+| `@gittrix/mcp` | `0.1.7` | MCP server package | Available |
+| `gittrix` CLI | `0.1.7` | Local repo/session commands | Available |
+
+## npm package
+
+Published package:
+
+- https://www.npmjs.com/package/gittrix
+
+Install CLI + MCP server binary:
+
+```bash
+npm i -g gittrix
+```
+
+Run directly without global install:
+
+```bash
+npx --yes gittrix --help
+npx --yes gittrix-mcp
+```
+
+## CLI quickstart
+
+Start a session:
+
+```bash
+gittrix session start --task "update docs" --durable /path/to/repo --branch main --json
+```
+
+Write/read files in the session:
+
+```bash
+echo "hello" | gittrix session write <session-id> notes.txt --json
+gittrix session read <session-id> notes.txt --json
+gittrix session touched <session-id> --json
+```
+
+Promote reviewed changes:
+
+```bash
+gittrix promote <session-id> --files README.md -m "docs: update readme" --json
+```
+
+Discard session workspace:
+
+```bash
+gittrix session evict <session-id> --json
+```
+
+Note: there is no `session export` command in `gittrix` CLI yet.
+
+## MCP with Opencode
+
+Add this to `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "gittrix": {
+      "type": "local",
+      "command": ["npx", "-y", "gittrix-mcp"],
+      "enabled": true
+    }
+  }
+}
+```
+
+Then fully restart Opencode and start a new chat session.
 
 ## Install
 
@@ -189,6 +258,7 @@ console.log(pr.url)
 - `session.log()` returns `[]`.
 - `session.commit()` returns synthetic ephemeral IDs like `ephemeral-...`.
 - The CLI is local-only.
+- There is no `session export` command yet.
 - Current core uses Node APIs.
 
 ## Development
