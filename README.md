@@ -12,13 +12,13 @@ Agents get an `AgentSession` for reads, writes, diffs, and synthetic commits. Hu
 
 | Package | Version | Role | State |
 | --- | ---: | --- | --- |
-| `@gittrix/core` | `0.1.7` | Session orchestration and promotion API | Available |
-| `@gittrix/adapter-local` | `0.1.7` | Local durable git repos and local ephemeral workspaces | Available |
-| `@gittrix/adapter-github` | `0.1.7` | GitHub durable storage | Available |
-| `@gittrix/adapter-cloudflare-artifacts` | `0.1.7` | Cloudflare Artifacts durable and ephemeral storage | Available |
-| `@gittrix/adapter-codestorage` | `0.1.7` | Code Storage adapter | Scaffold only |
-| `@gittrix/mcp` | `0.1.7` | MCP server package | Available |
-| `gittrix` CLI | `0.1.7` | Local repo/session commands | Available |
+| `@gittrix/core` | `0.1.8` | Session orchestration and promotion API | Available |
+| `@gittrix/adapter-local` | `0.1.8` | Local durable git repos and local ephemeral workspaces | Available |
+| `@gittrix/adapter-github` | `0.1.8` | GitHub durable storage | Available |
+| `@gittrix/adapter-cloudflare-artifacts` | `0.1.8` | Cloudflare Artifacts durable and ephemeral storage | Available |
+| `@gittrix/adapter-codestorage` | `0.1.8` | Code Storage adapter | Scaffold only |
+| `@gittrix/mcp` | `0.1.8` | MCP server package | Available |
+| `gittrix` CLI | `0.1.8` | Local repo/session commands | Available |
 
 ## npm package
 
