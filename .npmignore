@@ -1,0 +1,33 @@
+# Source & tests — only ship built dist
+packages/*/src/
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+
+# Source maps & declaration maps
+**/*.map
+
+# Private/dev-only packages
+packages/harness/
+
+# Per-package tsconfigs (not needed by consumers)
+packages/*/tsconfig.json
+
+# Repo dev artifacts / notes
+astro-docs-content.md
+content-site-update.md
+next-steps.md
+suitener-results/
+.glib/
+bun.lock
+tsconfig.base.json
+
+# Prepack backup files (should never ship)
+**/*.gittrix-bak
+scripts/
+
+# Standard junk
+.DS_Store
+.git/
+.github/
+node_modules/

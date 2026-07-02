@@ -1,7 +1,7 @@
 {
   "name": "gittrix",
   "private": false,
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Ephemeral storage router for AI coding agents",
   "license": "MIT",
   "repository": {
@@ -55,14 +55,29 @@
     "typecheck": "bun run --cwd packages/core build && bun run --cwd packages/core typecheck && bun run --cwd packages/adapter-local build && bun run --cwd packages/adapter-local typecheck && bun run --cwd packages/adapter-cloudflare-artifacts build && bun run --cwd packages/adapter-cloudflare-artifacts typecheck && bun run --cwd packages/adapter-codestorage build && bun run --cwd packages/adapter-codestorage typecheck && bun run --cwd packages/adapter-github build && bun run --cwd packages/adapter-github typecheck && bun run --cwd packages/cli typecheck && bun run --cwd packages/mcp typecheck && bun run --cwd packages/harness typecheck",
     "test": "bun run --cwd packages/core test && bun run --cwd packages/adapter-local test && bun run --cwd packages/adapter-cloudflare-artifacts test && bun run --cwd packages/adapter-codestorage test && bun run --cwd packages/adapter-github test && bun run --cwd packages/cli test && bun run --cwd packages/mcp test",
     "testharness": "bun run --cwd packages/harness run",
-    "prepack": "bun run build"
+    "prepack": "bun run build && bun scripts/strip-workspace-deps.ts strip",
+    "postpack": "bun scripts/strip-workspace-deps.ts restore"
   },
   "files": [
     "README.md",
     "docs/",
-    "packages/",
     "gittrix.png",
-    "tsconfig.base.json"
+    "packages/core/dist/",
+    "packages/core/package.json",
+    "packages/adapter-local/dist/",
+    "packages/adapter-local/package.json",
+    "packages/adapter-github/dist/",
+    "packages/adapter-github/package.json",
+    "packages/adapter-cloudflare-artifacts/dist/",
+    "packages/adapter-cloudflare-artifacts/package.json",
+    "packages/adapter-codestorage/dist/",
+    "packages/adapter-codestorage/package.json",
+    "packages/cli/dist/",
+    "packages/cli/package.json",
+    "packages/mcp/dist/",
+    "packages/mcp/package.json",
+    "!**/*.map",
+    "!**/*.test.*"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.0",

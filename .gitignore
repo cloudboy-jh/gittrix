@@ -4,3 +4,4 @@ packages/*/dist/
 .gittrix/
 .env
 .env.local
+*.gittrix-bak

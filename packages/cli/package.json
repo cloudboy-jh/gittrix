@@ -1,7 +1,7 @@
 {
   "name": "@gittrix/cli",
   "private": true,
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "bin": {
     "gittrix": "dist/index.js"
@@ -9,12 +9,12 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json --emitDeclarationOnly && bun build src/index.ts --outfile dist/index.js --target node --format esm --external @modelcontextprotocol/sdk --external zod && chmod +x dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun test --pass-with-no-tests"
   },
   "dependencies": {
-    "@gittrix/adapter-local": "0.1.7",
-    "@gittrix/core": "0.1.7"
+    "@gittrix/adapter-local": "0.1.8",
+    "@gittrix/core": "0.1.8"
   }
 }
