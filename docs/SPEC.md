@@ -188,7 +188,7 @@ import { LocalDurableAdapter, LocalEphemeralAdapter } from '@gittrix/adapter-loc
 import { CloudflareArtifactsEphemeralAdapter } from '@gittrix/adapter-cloudflare-artifacts'
 
 const gittrix = new GitTrix({
-  durable: new LocalDurableAdapter({ path: '/Users/jack/code/myproject' }),
+  durable: new LocalDurableAdapter({ path: '/path/to/repo' }),
   ephemeral: new CloudflareArtifactsEphemeralAdapter({
     accountId: '...',
     apiToken: '...',
